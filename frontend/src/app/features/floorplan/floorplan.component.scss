@@ -1,0 +1,68 @@
+:host { display: block; min-height: 0; height: 100%; overflow: auto; }
+
+.floorplan { padding: clamp(1rem, 3vw, 2rem); color: var(--ink); }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 1.6rem; }
+h2 { font-size: 1.1rem; }
+h3 { font-size: .95rem; }
+p { margin-top: .5rem; color: var(--muted); line-height: 1.5; }
+
+.path-picker { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1.25rem 0; }
+button {
+  padding: .55rem .8rem;
+  border: 1px solid var(--border);
+  border-radius: .55rem;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+button[aria-pressed="true"] { background: var(--active-background); color: white; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.diagram {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: .8rem;
+  background: var(--card-background);
+}
+ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 1rem 0 0; padding: 0; list-style: none; }
+li { display: flex; align-items: stretch; min-width: 0; }
+.node {
+  flex: 1;
+  min-width: 0;
+  padding: .85rem;
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--accent);
+  border-radius: .6rem;
+  background: var(--surface);
+}
+.node p { font-size: .85rem; }
+.activity { margin-top: 1rem; }
+.activity-list { list-style: none; padding: 0; margin: .75rem 0 0; display: grid; gap: .5rem; }
+.activity-row { display: block; }
+.activity-button { display: flex; flex-wrap: wrap; gap: .65rem; align-items: center; width: 100%; text-align: left; }
+.activity-button strong { margin-right: auto; }
+.activity-button time { color: var(--muted); }
+.failed { color: #d84970; }
+.activity-detail { padding: .4rem .75rem; }
+.activity-detail li { display: list-item; margin-block: .25rem; }
+.connector { position: relative; align-self: center; flex: 0 0 1.1rem; height: 1px; background: var(--accent); }
+.connector::after {
+  content: '';
+  position: absolute;
+  right: 2px;
+  top: -2px;
+  width: 5px;
+  height: 5px;
+  border-top: 1px solid var(--accent);
+  border-right: 1px solid var(--accent);
+  transform: rotate(45deg);
+}
+
+@media (max-width: 1050px) {
+  ol { grid-template-columns: 1fr; }
+  li { flex-direction: column; }
+  .connector { width: 1px; }
+  .connector::after { top: auto; bottom: 2px; right: -2px; transform: rotate(135deg); }
+}

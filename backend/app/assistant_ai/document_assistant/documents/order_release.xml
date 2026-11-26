@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Order OrderNo="100001">
+  <OrderLine PrimeLineNo="1" ItemID="ITEM-001" Quantity="2">
+    <OrderRelease OrderReleaseKey="REL-001" Status="Created" />
+  </OrderLine>
+</Order>

@@ -1,0 +1,266 @@
+# Inputs: optional order number and batch input. Output: mapped order details or an error.
+# PyYAML loads this configuration. Python runs the steps. BM25 retrieval can help chat select the workflow.
+
+# Stable identifier used by the workflow catalog, template lookup, or step routing.
+id: create-order
+# Name shown in the UI or key used to read this input at runtime.
+name: Create New Order
+# Definition version displayed with the workflow.
+version: "1.2"
+
+# Summary displayed in the workflow UI.
+description: >
+  Create a new order using the IBM Sterling createOrder API.
+  Generate a unique order number and display the created order details
+  and status.
+
+# Declares how the workflow starts.
+trigger:
+  # Selects the trigger, input control, or runtime step handler.
+  type: ui
+  # Shared UI definition used to present this workflow.
+  ui: common-ui
+  # UI event that starts execution.
+  event: execute
+
+# Metadata for chat routing. Workflow retrieval ranks matching metadata with BM25.
+ai:
+  enabled: true
+  # Instruction consumed by the workflow selector or the rule-based transformation, depending on its section.
+  prompt: >
+    Identify requests to create a new order. Extract an order number only when
+    the user explicitly provides one. When the order number is omitted, the
+    workflow generates it before calling createOrder.
+  # Example commands used for chat routing and quick actions.
+  executionCommands:
+    - create an order
+    - create a new order
+    - create new order
+    - create order
+    - place an order
+    - place a new order
+    - submit a new order
+  # Identifier used to categorize matching create-order requests.
+  intent: create_new_orders
+
+  # Example user messages that can help match this workflow.
+  examples:
+    - create the new orders
+    - create a new order
+    - create an order
+    - create multiple new orders
+    - I want to create a new order
+    - please create an order
+    - generate a new order
+    - submit a new order
+    - place a new order
+    - create a customer order
+    - create orders for a customer
+    - add a new order to the system
+    - I need to place an order
+    - can you create an order for me
+    - help me create a new order
+    - initiate a new order
+    - register a new order
+    - create an order for a customer
+    - create a sales order
+    - create an order with multiple items
+    - create a new order with product details
+    - place an order for a specific customer
+    - I want to create 5 orders
+    - generate 10 sample orders
+    - create orders with customer information
+    - create an order using customer details
+    - create a new order with item details
+    - I need a new order in Sterling
+    - create a new order in IBM Sterling
+    - add a customer order in Sterling
+    - submit a customer order in Sterling
+
+  # Text configured for requesting missing order details.
+  clarification: >
+    Please provide the customer information, product details,
+    quantity, and other mandatory order details.
+
+  # Text configured for a successful execution.
+  successMessage: >
+    Order created successfully. Here are the order details.
+
+# Form fields provided to the workflow as the inputs object.
+inputs:
+  # Name shown in the UI or key used to read this input at runtime.
+  - name: orderNo
+    # Selects the trigger, input control, or runtime step handler.
+    type: string
+    # Human-readable text shown in the UI.
+    label: Order Number
+  # Name shown in the UI or key used to read this input at runtime.
+  - name: orderCount
+    # Selects the trigger, input control, or runtime step handler.
+    type: string
+
+# Configures multi-order execution using orderCount.
+batch:
+  # Name of the input used by batch execution.
+  input: orderCount
+  # Delimiter used when order identifiers are supplied as a list.
+  separator: ","
+  # Maximum number of orders processed in one batch.
+  maxItems: 10
+  # Defines the fields returned for each item in the batch collection.
+  output:
+    # Response key containing the batch items.
+    collection: orders
+    # Maps named output fields or lists mappings from the API response.
+    fields:
+      # Order number passed to the request or included in the result.
+      orderNo: data.order.orderNo
+      status: data.order.status
+      statusDescription: data.order.statusDescription
+      paymentStatus: data.order.paymentStatus
+      enterpriseCode: data.order.enterpriseCode
+      orderHeaderKey: data.order.orderHeaderKey
+      orderLines: data.order.orderLines
+
+# Runtime settings accessed through references such as config.orderNumber.
+configuration:
+  # Configured timeout in seconds.
+  timeout: 60
+  # Settings used by the order-number action.
+  orderNumber:
+    # Prefix for generated order numbers, or a reference to that setting.
+    prefix: ABC
+    # strftime format used in the generated order number.
+    datetimeFormat: "%m%d%H%M%S"
+
+# Initial workflow values populated by step outputs.
+variables:
+  orderDetails: null
+  generatedOrderNo: null
+
+# Operations executed in order unless an explicit route is set.
+steps:
+
+  # Stable identifier used by the workflow catalog, template lookup, or step routing.
+  - id: generate-order-number
+    # Name shown in the UI or key used to read this input at runtime.
+    name: Resolve order number
+    # Selects the trigger, input control, or runtime step handler.
+    type: action
+    # Python uses the supplied order number when present and otherwise builds one from the configured prefix and timestamp.
+    action: generate_order_number
+    # Inputs to the action or fields included in a return step.
+    with:
+      # Prefix for generated order numbers, or a reference to that setting.
+      prefix: "${config.orderNumber.prefix}"
+      # Pass the configured date format to the Python action.
+      datetime_format: "${config.orderNumber.datetimeFormat}"
+      # Pass the optional user-entered order number to the Python action.
+      provided_order_no: "${inputs.orderNo}"
+    # Store the step output under variables for use by later steps.
+    saveAs: generatedOrderNo
+
+  # Stable identifier used by the workflow catalog, template lookup, or step routing.
+  - id: create-order
+    # Name shown in the UI or key used to read this input at runtime.
+    name: Create new order
+    # Selects the trigger, input control, or runtime step handler.
+    type: api
+    # Sterling operation invoked by the API step.
+    toolName: createOrder
+
+    # References templates or supplies the XML body from an earlier step.
+    xml_templates:
+      # Source of the request XML sent to Sterling.
+      request:
+        # Shared XML template file resolved by the backend.
+        file: input-templates
+        # Template ID in the shared XML bundle.
+        id: createorderinput
+      # Template used for the API response.
+      response:
+        # Shared XML template file resolved by the backend.
+        file: output-templates
+        # Template ID in the shared XML bundle.
+        id: createorderoutput
+
+    # Values passed to the API request template.
+    parameters:
+      # Order number passed to the request or included in the result.
+      orderNo: "${variables.generatedOrderNo}"
+
+    # Select fields from the parsed API response.
+    responseMapping:
+      # Use field-by-field response mapping.
+      strategy: field
+      # Maps named output fields or lists mappings from the API response.
+      fields:
+        # Read this attribute from the parsed Order element. The @ prefix denotes an XML attribute.
+        - source: "Order.@OrderNo"
+          # Key written to the mapped response object.
+          target: orderNo
+
+        # Read this attribute from the parsed Order element. The @ prefix denotes an XML attribute.
+        - source: "Order.@OrderHeaderKey"
+          # Key written to the mapped response object.
+          target: orderHeaderKey
+
+        # Read this attribute from the parsed Order element. The @ prefix denotes an XML attribute.
+        - source: "Order.@Status"
+          # Key written to the mapped response object.
+          target: status
+
+        # Read this attribute from the parsed Order element. The @ prefix denotes an XML attribute.
+        - source: "Order.@EnterpriseCode"
+          # Key written to the mapped response object.
+          target: enterpriseCode
+
+    # Store the step output under variables for use by later steps.
+    saveAs: orderDetails
+
+    # Route to the named step after successful execution.
+    onSuccess:
+      # ID of the next step.
+      gotoStep: order-result
+
+    # Defines the failure handling for this step.
+    onError:
+      # Text returned to the UI or shown when an operation fails.
+      message: "Create order API call failed."
+
+  # 2. Return created order information
+  # Stable identifier used by the workflow catalog, template lookup, or step routing.
+  - id: order-result
+    # Name shown in the UI or key used to read this input at runtime.
+    name: Created order result
+    # Selects the trigger, input control, or runtime step handler.
+    type: return
+
+    # Inputs to the action or fields included in a return step.
+    with:
+      order:
+        # Order number passed to the request or included in the result.
+        orderNo: "${variables.orderDetails.orderNo}"
+        orderHeaderKey: "${variables.orderDetails.orderHeaderKey}"
+        status: "${variables.orderDetails.status}"
+        enterpriseCode: "${variables.orderDetails.enterpriseCode}"
+
+    # Route to the named step after successful execution.
+    onSuccess:
+      # ID of the next step.
+      gotoStep: end
+
+  # 3. End workflow
+  # Stable identifier used by the workflow catalog, template lookup, or step routing.
+  - id: end
+    # Selects the trigger, input control, or runtime step handler.
+    type: end
+
+# Workflow-level fallback for execution errors.
+errorHandling:
+  # Initial input value or fallback error configuration, depending on its section.
+  default:
+    # Text returned to the UI or shown when an operation fails.
+    message: >
+      Order creation failed. Review the API response
+      and workflow execution details.

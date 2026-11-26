@@ -1,0 +1,98 @@
+<!-- Collect scenario text and show generated code, test results, and report actions. -->
+<section class="workbench" aria-label="Order automation workbench">
+  <header class="workbench-heading">
+    <div>
+      <h2>Order test workbench</h2>
+      <p>Turn plain-English order checks into Playwright tests and Pytest reports.</p>
+    </div>
+    <span class="environment"><span aria-hidden="true"></span> Local demo fixture</span>
+  </header>
+
+  <div class="workbench-grid">
+    <form class="workbench-panel editor" (ngSubmit)="runTests()">
+      <header class="panel-heading">
+        <div><h3>Scenario editor</h3><p>Start with an order number, then add the fields to verify.</p></div>
+        <button type="button" class="control" (click)="loadSample()" [disabled]="!!busy">Load sample</button>
+      </header>
+      <label for="order-scenario" class="editor-label">Plain-English instructions</label>
+      <textarea id="order-scenario" name="scenario" [ngModel]="scenario" (ngModelChange)="edit($event)" [disabled]="!!busy" spellcheck="false" maxlength="10000"></textarea>
+      <div class="fixture-hint">
+        <strong>Demo orders</strong>
+        <span><code>TEST-1001</code> Released</span>
+        <span><code>TEST-1002</code> Held</span>
+      </div>
+      <footer class="panel-actions">
+        <button type="button" class="control" [disabled]="!!busy || !scenario.trim()" (click)="preview()">{{ busy === 'preview' ? 'Building plan…' : 'Preview plan' }}</button>
+        <button type="submit" class="control primary" [disabled]="!!busy || !scenario.trim()">▶ &nbsp; {{ busy === 'run' ? 'Running tests…' : 'Run demo tests' }}</button>
+      </footer>
+      @if (error) { <p role="alert" class="error">{{ error }}</p> }
+    </form>
+
+    <section class="workbench-panel results" aria-label="Order test output" [attr.aria-busy]="!!busy">
+      <nav class="result-tabs" aria-label="Test output views">
+        @for (item of views; track item.id) {
+          <button type="button" [class.current]="view === item.id" [attr.aria-pressed]="view === item.id" (click)="view = item.id; feedback = ''">{{ item.label }}</button>
+        }
+      </nav>
+      @switch (view) {
+        @case ('plan') {
+          @if (plan) {
+            <div class="metrics">
+              <div><strong>{{ plan.scenarios.length }}</strong><span>Scenarios</span></div>
+              <div><strong>{{ checks }}</strong><span>Checks</span></div>
+            </div>
+            <div class="scenario-list">
+              @for (item of plan.scenarios; track $index) {
+                <article>
+                  <div class="case-heading"><h3>{{ item.title }}</h3><code>{{ item.order_number }}</code></div>
+                  <dl>
+                    @for (check of item.checks; track $index) {
+                      <dt>{{ check.field.replaceAll('_', ' ') }}</dt><dd>{{ check.expected }}</dd>
+                    }
+                  </dl>
+                </article>
+              }
+            </div>
+          } @else {
+            <div class="empty"><strong>Preview your checks</strong><p>The local field classifier maps each instruction to an order field and an expected value.</p></div>
+          }
+        }
+        @case ('code') {
+          @if (plan) {
+            <div class="code-heading">
+              <code>test_order_details.py</code>
+              <button type="button" class="control" (click)="copyCode()">Copy</button>
+              <button type="button" class="control" (click)="download(true)">Download Python</button>
+            </div>
+            <pre tabindex="0" class="python-code"><code>{{ plan.code }}</code></pre>
+            <p class="caption">Set <code>ORDER_TEST_URL</code> and adapt the selectors to run this code against your test application.</p>
+          } @else {
+            <div class="empty"><strong>No code generated yet</strong><p>Preview a scenario to generate its Python Playwright test.</p></div>
+          }
+        }
+        @case ('report') {
+          @if (busy === 'run') {
+            <div class="empty" role="status"><strong>Running Playwright tests…</strong><p>The browser is checking the demo orders.</p></div>
+          } @else if (run) {
+            <div class="metrics">
+              <div><strong>{{ passed }}</strong><span>Passed</span></div>
+              <div><strong>{{ failed }}</strong><span>Failed</span></div>
+            </div>
+            <div class="scenario-list">
+              @for (outcome of run.outcomes; track $index) {
+                <article>
+                  <div class="case-heading"><h3>{{ outcome.name }}</h3><span class="outcome" [class.failed]="outcome.status === 'failed'">{{ outcome.status }}</span></div>
+                  @if (outcome.detail) { <p class="failure-detail">{{ outcome.detail }}</p> }
+                </article>
+              }
+            </div>
+            <footer class="panel-actions"><button type="button" class="control primary" (click)="download()">Download HTML report</button></footer>
+          } @else {
+            <div class="empty"><strong>No report yet</strong><p>Run the demo tests to generate an HTML report with browser evidence on failure.</p></div>
+          }
+        }
+      }
+      @if (feedback) { <p class="caption" role="status">{{ feedback }}</p> }
+    </section>
+  </div>
+</section>

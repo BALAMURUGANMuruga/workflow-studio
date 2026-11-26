@@ -1,0 +1,36 @@
+# Describe the UI definition accepted by the studio for workflow forms and results.
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Shared Workflow UI Definition
+type: object
+required: [id, version, page, components]
+properties:
+  id: {const: common-ui}
+  version: {type: string}
+  flow: false
+  tableFeatures: {type: object}
+  page:
+    type: object
+    properties:
+      title: {type: string}
+      description: {type: string}
+      layout: {enum: [dashboard, single-column, two-column]}
+  components:
+    type: array
+    items:
+      type: object
+      required: [id, type]
+      properties:
+        id: {type: string}
+        type: {enum: [form, execution-status, object-view, data-table, text, alert, divider, badge, card, tabs]}
+        title: {type: string}
+        description: {type: string}
+        fields: {type: array}
+        columns: {type: array}
+        source: {type: string}
+        visibleWhen: {type: string}
+        features: {type: object}
+        submit:
+          type: object
+          properties:
+            label: {type: string}
+            event: {type: string}

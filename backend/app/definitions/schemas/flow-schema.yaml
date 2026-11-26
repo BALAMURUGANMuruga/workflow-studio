@@ -1,0 +1,117 @@
+# Describe workflow fields and step types used by the designer and workflow definition tooling.
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: Workflow Flow Definition
+type: object
+required: [id, version, inputs, steps]
+properties:
+  id: {type: string, pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"}
+  name: {type: string}
+  version: {type: string}
+  description: {type: string}
+  trigger:
+    type: object
+    required: [type, ui, event]
+    properties:
+      type: {const: ui}
+      ui: {type: string}
+      event: {type: string}
+  inputs:
+    type: array
+    items:
+      type: object
+      properties:
+        name: {type: string}
+        type: {type: string}
+        required: {type: boolean}
+        default: {}
+        clarification: {type: string}
+        label: {type: string}
+        placeholder: {type: string}
+        help: {type: string}
+  inputGroups:
+    type: array
+    items:
+      type: object
+      required: [name, anyOf]
+      properties:
+        name: {type: string}
+        anyOf: {type: array, items: {type: string}, minItems: 1}
+        message: {type: string}
+  batch:
+    type: object
+    required: [input, separator, maxItems, output]
+    properties:
+      input: {type: string}
+      separator: {type: string, minLength: 1}
+      maxItems: {type: integer, minimum: 1}
+      output:
+        type: object
+        required: [collection, fields]
+        properties:
+          collection: {type: string}
+          fields:
+            type: object
+            additionalProperties: {type: string}
+  ai:
+    type: object
+    properties:
+      enabled: {type: boolean}
+      intent: {type: string}
+      prompt: {type: string, minLength: 1}
+      examples: {type: array, items: {type: string}}
+      executionCommands: {type: array, minItems: 1, items: {type: string, minLength: 1}}
+      allowInlineCommandInputs: {type: boolean}
+      clarification: {type: string}
+      successMessage: {type: string}
+  configuration: {type: object}
+  presentation:
+    type: object
+    properties:
+      quickActions:
+        type: array
+        items:
+          type: object
+          required: [label, prompt]
+          properties:
+            label: {type: string}
+            prompt: {type: string}
+      results:
+        type: array
+        items:
+          type: object
+          required: [id, type, source]
+          properties:
+            id: {type: string}
+            type: {enum: [object-view, data-table, batch-view]}
+            source: {type: string}
+  variables: {type: object}
+  steps:
+    type: array
+    items:
+      type: object
+      required: [id, type]
+      properties:
+        id: {type: string}
+        type: {enum: [action, api, condition, set, transform, flow, display, return, end]}
+        action: {type: string}
+        with: {type: object}
+        saveAs: {type: string}
+        name: {type: string}
+        toolName: {type: string}          # api step: API name declared by a core Flow
+        xml_templates: {type: object}     # api step: request/response {file, id}
+        parameters: {type: object}
+        responseMapping: {type: object}
+        condition: {type: object}         # condition step: {field, operator, value}
+        flow: {type: string}              # flow step: id of another flow
+        gotoStep: {type: string}
+        onSuccess: {}
+        onError: {}
+        onTrue: {type: string}
+        onFalse: {type: string}
+  errorHandling:
+    type: object
+    properties:
+      default:
+        type: object
+        properties:
+          message: {type: string}

@@ -1,0 +1,62 @@
+<!-- Collect credentials and account type, then hand the form to the component's login handler. -->
+<main class="signin-page">
+  <section class="signin-card">
+    <div class="signin-mark" aria-hidden="true">✦</div>
+    <h1>Ganalimura AI Assistant</h1>
+    <p>{{ operationsAccount ? 'Sign in to the Operations Portal' : 'Sign in to run your workflows' }}</p>
+
+    <form (ngSubmit)="login()" #loginForm="ngForm">
+      @if (!embeddedChat) {
+        <label for="account-type">Workspace</label>
+        <select id="account-type" name="accountType" [(ngModel)]="operationsAccount" [disabled]="loading">
+          <option [ngValue]="false">Ganalimura AI Assistant</option>
+          <option [ngValue]="true">Operations Portal</option>
+        </select>
+      }
+      <label for="login-username">Username</label>
+      <input id="login-username" name="username" [(ngModel)]="username" autocomplete="username" required [disabled]="loading">
+
+      <label for="login-password">Password</label>
+      <div class="password-field">
+        <input id="login-password" name="password" [(ngModel)]="password" [type]="showPassword ? 'text' : 'password'"
+          autocomplete="current-password" required [disabled]="loading">
+        <button type="button" class="text-link" (click)="showPassword = !showPassword" [disabled]="loading">
+          {{ showPassword ? 'Hide' : 'Show' }}
+        </button>
+      </div>
+
+      @if (!operationsAccount) {
+        <label class="remember"><input type="checkbox" name="rememberMe" [(ngModel)]="rememberMe" [disabled]="loading"> Remember me</label>
+      }
+
+      @if (errorMessage) {
+        <p class="signin-error" role="alert">{{ errorMessage }}</p>
+      }
+      <button class="signin-submit" type="submit" [disabled]="loginForm.invalid || loading">
+        {{ loading ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+
+    @if (!embeddedChat) {
+      <div class="account-actions">
+        <button type="button" class="text-link" (click)="openForgotPassword()">Reset Operations password</button>
+        <button type="button" class="text-link" (click)="openRegister()">Create Operations account</button>
+      </div>
+    }
+  </section>
+
+  @if (showForgotPassword || showRegister) {
+    <div class="modal-overlay" (click)="closePopup()" (keydown.escape)="closePopup()">
+      <section class="modal-card" role="dialog" aria-modal="true"
+        [attr.aria-label]="showRegister ? 'Create Operations account' : 'Reset Operations password'"
+        (click)="$event.stopPropagation()">
+        <button type="button" class="modal-close text-link" (click)="closePopup()" aria-label="Close">×</button>
+        @if (showRegister) {
+          <app-register class="auth-dialog" [inDialog]="true" (registered)="onRegistered($event)" />
+        } @else {
+          <app-forgot-password class="auth-dialog" />
+        }
+      </section>
+    </div>
+  }
+</main>

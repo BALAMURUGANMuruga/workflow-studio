@@ -1,0 +1,12 @@
+# Confirm the released order
+Open order TEST-1001
+Verify order status is Released
+Check customer name equals Sample Customer
+Confirm order total is "$125.50"
+Verify number of items is 2
+
+# Confirm the held order
+Find order TEST-1002
+Verify status is Held
+Confirm buyer is Test Buyer
+Verify grand total is "$42.00"

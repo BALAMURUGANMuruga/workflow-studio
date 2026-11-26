@@ -1,0 +1,171 @@
+<!-- The shell shows navigation and workspace tabs for a full-page session. Embedded chat uses a reduced layout. -->
+<div class="assistant-shell" [class.embedded-chat]="embeddedChat" [class.light-mode]="!isDarkMode" [class.compact]="preferences.density === 'compact'" [class.standard]="preferences.density === 'standard'">
+  @if (!embeddedChat) {
+    <app-side-navigation
+      [currentTab]="activeTab"
+      [isMaster]="isMaster"
+      [currentUser]="displayUser"
+      [isDarkMode]="isDarkMode"
+      (tabChange)="selectAssistantTab($event)"
+      (themeToggle)="toggleTheme()"
+      (fullscreenToggle)="toggleFullscreen()"
+      (signOut)="logout()" />
+  }
+
+  <section class="workspace">
+    <header class="topbar">
+      <div class="header-brand-icon" aria-hidden="true">✦</div>
+      <div class="header-copy">
+        <strong>{{ embeddedChat ? pageTitle : 'Ganalimura AI Assistant' }}</strong>
+        @if (!embeddedChat || assistant) {
+          <small>IBM Sterling order management assistance</small>
+        }
+      </div>
+      <div class="header-actions">
+        @if (embeddedChat) {
+          <button class="expand-button" aria-label="Toggle full screen" (click)="toggleFullscreen()">⛶</button>
+        } @else {
+          <button class="expand-button theme-button" type="button" [attr.aria-label]="isDarkMode ? 'Switch to light theme' : 'Switch to dark theme'" (click)="toggleTheme()">{{ isDarkMode ? '☾' : '☼' }}</button>
+        }
+        @if (!embeddedChat || assistant) {
+          <span class="local-status"><span class="connected-dot"></span>Local assistant</span>
+          <button class="clear-button" [disabled]="assistant?.loading" (click)="newChat()">
+            <span aria-hidden="true">+</span> New chat
+          </button>
+        }
+        @if (embeddedChat) {
+          <button class="clear-button" (click)="logout()">Sign out</button>
+        } @else if (displayUser; as user) {
+          <button class="header-avatar" aria-label="Open profile" (click)="selectAssistantTab('profile')">{{ user.displayName.slice(0, 1).toUpperCase() }}</button>
+        }
+      </div>
+    </header>
+
+    @if (!embeddedChat) {
+      <div class="workspace-tabs">
+        <nav aria-label="Workspace tabs">
+          @for (tab of openTabs; track tab) {
+            @for (item of tabs; track item.id) {
+              @if (item.id === tab) {
+                <div class="workspace-tab" [class.current]="activeTab === tab">
+                  <button type="button" [attr.aria-current]="activeTab === tab ? 'page' : null" (click)="selectAssistantTab(tab)"><span aria-hidden="true">{{ item.icon }}</span>{{ item.label }}</button>
+                  @if (tab !== 'run') {
+                    <button type="button" class="tab-close" [attr.aria-label]="'Close ' + item.label" (click)="closeTab(tab)">×</button>
+                  }
+                </div>
+              }
+            }
+          }
+        </nav>
+        <button type="button" class="tab-add" aria-label="Open workspace tab" [attr.aria-expanded]="showTabMenu" (click)="showTabMenu = !showTabMenu">+</button>
+        @if (showTabMenu) {
+          <div class="tab-menu">
+            @for (item of tabs; track item.id) {
+              <button type="button" (click)="selectAssistantTab(item.id)">{{ item.label }}</button>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @if (panel && !embeddedChat) {
+      <main class="account-page">
+        <header class="page-heading">
+          <span class="section-icon" aria-hidden="true">{{ panel === 'profile' ? '♙' : '⚙' }}</span>
+          <div>
+            <h1>{{ panel === 'profile' ? 'Profile' : 'Settings' }}</h1>
+            <p>{{ panel === 'profile' ? 'Manage your account details and contact information.' : 'Manage your application preferences and environment.' }}</p>
+          </div>
+        </header>
+        <div class="account-layout">
+          <nav class="account-nav" [attr.aria-label]="panel === 'profile' ? 'Profile sections' : 'Settings sections'">
+            @if (panel === 'profile') {
+              <button type="button" class="selected" aria-current="page" (click)="focusSection('account-details')"><span aria-hidden="true">♙</span>My Profile</button>
+              <a routerLink="/home/users"><span aria-hidden="true">⚿</span>Connection settings</a>
+              <button type="button" (click)="selectAssistantTab('settings')"><span aria-hidden="true">⚙</span>Preferences</button>
+              <button type="button" (click)="selectAssistantTab('history')"><span aria-hidden="true">◷</span>Activity History</button>
+            } @else {
+              <button type="button" class="selected" aria-current="page" (click)="focusSection('account-details')"><span aria-hidden="true">⚙</span>General</button>
+              <button type="button" (click)="openWorkflowOptions()"><span aria-hidden="true">⌘</span>Workflow Options</button>
+              <a routerLink="/home/users"><span aria-hidden="true">⚿</span>Connections</a>
+              <button type="button" (click)="selectAssistantTab('profile')"><span aria-hidden="true">♙</span>Profile</button>
+              <button type="button" (click)="focusSection('appearance')"><span aria-hidden="true">◐</span>Appearance</button>
+              <button type="button" (click)="selectAssistantTab('about')"><span aria-hidden="true">ⓘ</span>About</button>
+            }
+          </nav>
+          @if (panel === 'profile' && displayUser; as user) {
+            <form class="account-card" id="account-details" tabindex="-1" (ngSubmit)="editingProfile && saveProfile()">
+              <header class="card-heading">
+                <div><h2>My Profile</h2><p>View and update your personal information.</p></div>
+                <button class="secondary-action" type="button" (click)="editingProfile = true">✎ &nbsp; Edit Profile</button>
+              </header>
+              <div class="profile-summary">
+                <span class="large-avatar" aria-hidden="true">{{ user.displayName.slice(0, 1).toUpperCase() }}</span>
+                <div>
+                  <div class="identity-line"><h2>{{ user.displayName }}</h2><span class="role-pill">{{ user.role }}</span><span class="active-pill"><span class="connected-dot"></span> Active</span></div>
+                  <div class="profile-contact">
+                    @if (profile.email) { <span>✉ &nbsp; {{ profile.email }}</span> }
+                    @if (profile.phone) { <span>☏ &nbsp; {{ profile.phone }}</span> }
+                    @if (profile.department) { <span>▤ &nbsp; {{ profile.department }}</span> }
+                  </div>
+                </div>
+              </div>
+              <h3>Personal Information</h3>
+              <div class="field-grid">
+                <label>Full Name<input name="name" [(ngModel)]="profileDraft.name" [readonly]="!editingProfile" autocomplete="name" required></label>
+                <label>Role<input [value]="user.role" readonly></label>
+                <label>Email<input name="email" type="email" [(ngModel)]="profileDraft.email" [readonly]="!editingProfile" autocomplete="email"></label>
+                <label>Phone<input name="phone" type="tel" [(ngModel)]="profileDraft.phone" [readonly]="!editingProfile" autocomplete="tel"></label>
+                <label>Department<input name="department" [(ngModel)]="profileDraft.department" [readonly]="!editingProfile"></label>
+                <label>Time Zone<input [value]="preferences.timeZone" readonly></label>
+              </div>
+              <footer class="card-actions">
+                <span role="status">{{ notice }}</span>
+                <button class="secondary-action" type="button" [disabled]="!editingProfile" (click)="discardProfile()">↻ &nbsp; Discard Changes</button>
+                <button class="accent-action" type="submit" [disabled]="!editingProfile">✓ &nbsp; Save Changes</button>
+              </footer>
+            </form>
+          } @else {
+            <form class="account-card" id="account-details" tabindex="-1" (ngSubmit)="saveSettings()">
+              <header class="card-heading"><div><h2>General Settings</h2><p>Configure basic application preferences.</p></div></header>
+              <div class="field-grid">
+                <label>Application Name<input value="Ganalimura AI Assistant" readonly></label>
+                <label>Default Language<input value="English (EN)" readonly></label>
+                <label class="full-field">Time Zone
+                  <select name="timeZone" [(ngModel)]="preferenceDraft.timeZone">
+                    <option value="Asia/Kolkata">(UTC+05:30) India Standard Time – Chennai</option>
+                    <option value="UTC">Coordinated Universal Time</option>
+                    <option value="Europe/London">London</option>
+                    <option value="America/New_York">New York</option>
+                    <option value="America/Los_Angeles">Los Angeles</option>
+                  </select>
+                </label>
+              </div>
+              <div class="field-grid appearance" id="appearance" tabindex="-1">
+                <fieldset><legend>Theme</legend><div class="option-row">
+                  <label><input type="radio" name="theme" value="light" [(ngModel)]="preferenceDraft.theme">☀ &nbsp; Light</label>
+                  <label><input type="radio" name="theme" value="dark" [(ngModel)]="preferenceDraft.theme">☾ &nbsp; Dark</label>
+                  <label><input type="radio" name="theme" value="system" [(ngModel)]="preferenceDraft.theme">▣ &nbsp; System</label>
+                </div></fieldset>
+                <fieldset><legend>Density</legend><div class="option-row">
+                  <label><input type="radio" name="density" value="comfortable" [(ngModel)]="preferenceDraft.density">Comfortable</label>
+                  <label><input type="radio" name="density" value="standard" [(ngModel)]="preferenceDraft.density">Standard</label>
+                  <label><input type="radio" name="density" value="compact" [(ngModel)]="preferenceDraft.density">Compact</label>
+                </div></fieldset>
+              </div>
+              <footer class="card-actions">
+                <span role="status">{{ notice }}</span>
+                <button class="secondary-action" type="button" (click)="resetPreferences()">↻ &nbsp; Reset to Default</button>
+                <button class="accent-action" type="submit">✓ &nbsp; Save Changes</button>
+              </footer>
+            </form>
+          }
+        </div>
+      </main>
+    }
+
+    <section class="page-content" [class.assistant-content]="!!assistant" [attr.hidden]="panel && !embeddedChat ? '' : null">
+      <router-outlet #outlet="outlet" (activate)="onPageActivated($event, outlet)" (deactivate)="assistant = null"></router-outlet>
+    </section>
+  </section>
+</div>

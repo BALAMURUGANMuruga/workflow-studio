@@ -1,0 +1,306 @@
+<!-- Render chat history, workflow forms, execution results, and the source editor from component state. -->
+    <div class="chat-layout" [class.rail-open]="railOpen && !embeddedChat()" *ngIf="currentTab==='run'">
+    <main class="chat-page">
+      <header class="conversation-heading">
+        <h1><span aria-hidden="true">☏</span> Conversation</h1>
+        <div class="conversation-tools">
+          <span>Private local workflow</span>
+          @if (!embeddedChat()) {
+            <button type="button" class="rail-toggle" aria-controls="workflow-tools" [attr.aria-expanded]="railOpen"
+              [attr.aria-label]="railOpen ? 'Collapse workflow sidebar' : 'Expand workflow sidebar'"
+              [title]="railOpen ? 'Collapse workflow sidebar' : 'Expand workflow sidebar'" (click)="railOpen = !railOpen">{{ railOpen ? '›' : '‹' }}</button>
+          }
+        </div>
+      </header>
+      <div class="chat-stream" #chatStream>
+        <div class="welcome-message" *ngIf="messages.length===0">
+          <div class="bot-avatar" aria-hidden="true">✦</div>
+          <div class="assistant-bubble">
+            <div class="assistant-name">Ganalimura AI Assistant</div>
+            <p>{{ui?.assistant?.greeting||'Tell me what you need, or choose a workflow action below.'}}</p>
+            <div class="welcome-workflow" *ngIf="ui"><span class="workflow-mark">↻</span> Ready to run: {{ui.page?.title}} workflow</div>
+          </div>
+        </div>
+
+        <ng-container *ngFor="let message of messages;let messageIndex=index;trackBy:track">
+          <div class="user-message" *ngIf="message.role==='user'">
+            <div><div class="user-bubble">{{message.text}}</div><div class="message-time user-time">{{formatTime(message.time)}} <span aria-label="Sent">✓✓</span></div></div>
+            <div class="user-avatar">●</div>
+          </div>
+
+          <div class="assistant-message" *ngIf="message.role==='assistant'">
+            <div class="bot-avatar" aria-hidden="true">✦</div>
+            <div class="assistant-bubble">
+              <div class="reply-heading">
+                <div class="assistant-name">Ganalimura AI Assistant</div>
+                <button type="button" class="copy-reply" [attr.aria-label]="'Copy assistant reply ' + (messageIndex + 1)" (click)="copyReply(message)">Copy</button>
+                @if (copyFeedback?.message === message) { <small role="status">{{ copyFeedback?.label }}</small> }
+              </div>
+              <p class="assistant-text">{{message.text}}</p>
+              <div class="quick-actions" *ngIf="message.traceWorkflows?.length || message.openTraceGenerator">
+                <button type="button" *ngFor="let workflow of message.traceWorkflows" (click)="openWorkflowOptions(workflow.id)" [disabled]="loading">Open {{ workflow.name }}</button>
+                <a *ngIf="message.openTraceGenerator" class="workflow-mark" routerLink="/home/workflow-generator">Open Workflow YAML Create AI</a>
+              </div>
+              <div class="workflow-progress" *ngIf="message.result"><span class="workflow-mark">◌</span> Workflow: {{message.uiDefinition?.flow||message.result.flow||selected}}</div>
+
+              <ng-container *ngIf="message.result">
+                <ng-container *ngFor="let c of message.uiDefinition?.components;trackBy:track">
+                  <section class="order-result-card" *ngIf="visible(c,message.result)&&c.type==='object-view'">
+                    <div class="result-card-title">
+                      <div><span class="result-icon" aria-hidden="true">▤</span><strong>{{c.title}}</strong></div>
+                      <span class="retrieved-badge" *ngIf="message.result.success"><span>✓</span> Retrieved</span>
+                      <span class="failed-badge" *ngIf="!message.result.success">Failed</span>
+                    </div>
+                    <div class="order-fields">
+                      <div class="order-field" *ngFor="let f of c.fields">
+                        <span>{{f.label}}</span><b *ngIf="f.display!=='badge'">{{formatCell(resolve(c.source+'.'+f.key,message.result))}}</b><b *ngIf="f.display==='badge'" class="value-badge" [ngClass]="badgeClass(f,resolve(c.source+'.'+f.key,message.result))">{{resolve(c.source+'.'+f.key,message.result)??'—'}}</b>
+                      </div>
+                    </div>
+                    <div class="result-success" *ngIf="message.result.success"><span>✓</span> Workflow executed successfully.</div>
+                  </section>
+
+                  <section class="execution-card" *ngIf="c.type==='execution-status'">
+                    <div class="execution-heading"><strong>{{c.title}}</strong><span class="status" [class.failed]="!message.result.success" [class.partial]="message.result.partialSuccess">{{message.result.partialSuccess?'PARTIAL':message.result.success?'COMPLETED':'FAILED'}}</span></div>
+                    <p>{{message.result.message}} <small>{{message.result.durationMs}} ms</small></p>
+                    <div class="step-list" *ngIf="message.result.steps?.length">
+                      <div *ngFor="let step of message.result.steps" class="step"><strong>{{step.id}}</strong><span>{{step.status}}</span><small *ngIf="step.error">{{step.error}}</small></div>
+                    </div>
+                  </section>
+
+                  <section class="lines-card" *ngIf="visible(c,message.result)&&c.type==='data-table'" [id]="'order-lines-'+messageIndex">
+                    <div class="lines-heading"><strong>{{c.title}}</strong><span>{{getRows(c,message.result).length}} records</span>
+                      <input class="table-search" *ngIf="c.features?.search" placeholder="Search…" [(ngModel)]="searchText" [name]="'search-'+messageIndex">
+                    </div>
+                    <div class="table-wrap"><table>
+                      <thead><tr><th *ngFor="let col of c.columns" (click)="c.features?.sorting&&sort(col.key)">{{col.label}} <span *ngIf="sortKey===col.key">{{sortAsc?'↑':'↓'}}</span></th></tr></thead>
+                      <tbody>
+                        <tr *ngFor="let row of pageRows(c,message.result)"><td *ngFor="let col of c.columns"><span [class.value-badge]="col.display==='badge'" [ngClass]="col.display==='badge'?badgeClass(col,row[col.key]):''">{{formatCell(row[col.key])}}</span></td></tr>
+                        <tr *ngIf="!getRows(c,message.result).length"><td [attr.colspan]="c.columns.length" class="empty">No data available</td></tr>
+                      </tbody>
+                    </table></div>
+                    <div class="pagination" *ngIf="c.features?.pagination?.enabled"><button (click)="pageIndex=Math.max(0,pageIndex-1)" [disabled]="pageIndex===0">Previous</button><span>Page {{pageIndex+1}} of {{totalPages(c,message.result)}}</span><button (click)="pageIndex=Math.min(totalPages(c,message.result)-1,pageIndex+1)" [disabled]="pageIndex>=totalPages(c,message.result)-1">Next</button></div>
+                  </section>
+
+                  <section class="batch-results" *ngIf="visible(c,message.result)&&c.type==='batch-view'">
+                    <div class="batch-results-heading"><strong>{{c.title}}</strong><span>{{resolve(c.source,message.result)?.length||0}} orders</span></div>
+                    <article class="batch-order-card" *ngFor="let order of resolve(c.source,message.result);trackBy:track">
+                      <div class="batch-order-heading">
+                        <strong>{{order.orderNo}}</strong>
+                        <span class="batch-lookup-status" [class.failed]="order.lookupStatus==='Failed'">{{order.lookupStatus}}</span>
+                      </div>
+                      <div class="batch-summary-fields">
+                        <div class="batch-summary-field" *ngFor="let field of c.summaryFields">
+                          <span>{{field.label}}</span><b>{{formatCell(order[field.key])}}</b>
+                        </div>
+                      </div>
+                      <section class="batch-lines" *ngIf="order[c.lineItems.key]?.length">
+                        <div class="batch-lines-heading"><strong>{{c.lineItems.title}}</strong><span>{{order[c.lineItems.key].length}} lines</span></div>
+                        <div class="batch-table-wrap"><table>
+                          <thead><tr><th *ngFor="let col of c.lineItems.columns">{{col.label}}</th></tr></thead>
+                          <tbody>
+                            <tr *ngFor="let line of order[c.lineItems.key];trackBy:track">
+                              <td *ngFor="let col of c.lineItems.columns">{{formatCell(line[col.key])}}</td>
+                            </tr>
+                          </tbody>
+                        </table></div>
+                      </section>
+                      <p class="batch-no-lines" *ngIf="order.lookupStatus==='Retrieved'&&!order[c.lineItems.key]?.length">No order lines returned.</p>
+                      <p class="batch-order-error" *ngIf="order.error">{{order.error}}</p>
+                    </article>
+                  </section>
+                </ng-container>
+              </ng-container>
+              <div class="message-time">{{formatTime(message.time)}}</div>
+            </div>
+          </div>
+        </ng-container>
+        <div class="loading-message" *ngIf="loading"><div class="bot-avatar" aria-hidden="true">✦</div><div class="assistant-bubble"><span class="loading-dots"></span> Understanding your request and running the workflow…</div></div>
+      </div>
+
+      <div class="composer-area">
+        <section class="settings-panel" *ngIf="showSettings">
+          <div class="settings-heading"><div><strong>Workflow options</strong></div><button (click)="toggleSettings()" aria-label="Close settings">×</button></div>
+          <label class="field"><span>Workflow</span><select [ngModel]="selected" (ngModelChange)="loadUi($event)" [disabled]="loading"><option *ngFor="let workflow of definitions" [value]="workflow.id">{{workflow.name}}</option></select></label>
+          <div class="settings-grid">
+            <ng-container *ngFor="let c of ui?.components">
+              <ng-container *ngFor="let f of c.fields">
+                <label class="field" *ngIf="c.type==='form'">
+                  <span>{{f.label}} <b *ngIf="f.required">*</b></span>
+                  <input *ngIf="['text','number','date','datetime','time'].includes(f.type)" [type]="f.type==='datetime'?'datetime-local':f.type" [name]="'settings-'+f.name" [(ngModel)]="inputs[f.name]" [placeholder]="f.placeholder||''">
+                  <select *ngIf="f.type==='select'||f.type==='dropdown'" [name]="'settings-'+f.name" [ngModel]="inputs[f.name]" (ngModelChange)="updateSelection(f, $event)">
+                    <option *ngIf="f.options?.dependsOn" value="" disabled>Select {{ f.label }}</option>
+                    <option *ngFor="let o of getOptions(f)" [value]="o.value">{{o.label}}</option>
+                  </select>
+                  <textarea *ngIf="f.type==='textarea'" [name]="'settings-'+f.name" [(ngModel)]="inputs[f.name]" [placeholder]="f.placeholder||''"></textarea>
+                  <span class="checkbox-option" *ngIf="f.type==='checkbox'"><input type="checkbox" [name]="'settings-'+f.name" [(ngModel)]="inputs[f.name]"> {{f.help||f.label}}</span>
+                  <small *ngIf="f.help">{{f.help}}</small>
+                </label>
+              </ng-container>
+            </ng-container>
+          </div>
+          <button class="primary-action" type="button" (click)="execute()" [disabled]="loading||!ui?.flow||ui.flow!==selected">Run selected workflow</button>
+        </section>
+
+        <div class="error-message" *ngIf="error" role="alert">{{error}}</div>
+        <div class="quick-actions" id="quick-actions">
+          <button *ngFor="let action of ui?.assistant?.quickActions;let actionIndex=index" (click)="useSuggestion(action.prompt)"><span>{{actionIndex===0?'✦':'◷'}}</span> {{action.label}}</button>
+          <button class="more-actions" (click)="toggleSettings()">More <span>⌄</span></button>
+        </div>
+        <form class="composer" (ngSubmit)="sendMessage()">
+          <button type="button" class="attach-button" aria-label="Toggle workflow options" [attr.aria-expanded]="showSettings" (click)="toggleSettings()">✧</button>
+          <textarea name="messageDraft" aria-label="Message" [(ngModel)]="messageDraft" (keydown.enter)="sendOnEnter($event)" placeholder="Ask about IBM Sterling order management…" [rows]="Math.min(6, messageDraft.split('\n').length)" [disabled]="loading"></textarea>
+          <button type="submit" class="send-button" aria-label="Send message" [disabled]="loading||!messageDraft.trim()">➤</button>
+        </form>
+        <div class="composer-footnote">Verify AI-generated results before changing live order data.</div>
+      </div>
+    </main>
+
+    <aside class="assistant-rail" id="workflow-tools" aria-label="Workflow tools" [hidden]="!railOpen" *ngIf="!embeddedChat()">
+      <section class="rail-card">
+        <div class="rail-workflow">
+          <div class="rail-heading">
+            <span class="header-brand-icon" aria-hidden="true">⌘</span>
+            <div><h2>Workflow Assistant</h2><p>Run your configured workflows.</p></div>
+          </div>
+          <button class="run-workflow" type="button" (click)="openWorkflowOptions()" [disabled]="loading || !definitions.length"><span aria-hidden="true">▷</span> Run Workflow</button>
+        </div>
+        <div class="rail-list" *ngIf="definitions.length">
+          <div class="rail-list-heading"><h3>Available workflows</h3><button type="button" (click)="openWorkflowOptions()" [disabled]="loading">View all</button></div>
+          <button class="rail-row" type="button" *ngFor="let workflow of definitions | slice:0:3" (click)="openWorkflowOptions(workflow.id)" [disabled]="loading">
+            <span aria-hidden="true">⌘</span>{{workflow.name}}
+          </button>
+        </div>
+      </section>
+      <section class="rail-card rail-list">
+        <div class="rail-list-heading"><h2>Useful Resources</h2></div>
+        <a class="rail-row" routerLink="/home/exception"><span aria-hidden="true">⚠</span> Exception handling</a>
+        <a class="rail-row" routerLink="/home/automation"><span aria-hidden="true">▣</span> Automation testing</a>
+      </section>
+    </aside>
+    </div>
+
+    <main class="reference-page history-page" *ngIf="currentTab==='history'">
+      <header class="info-heading"><span class="section-icon" aria-hidden="true">◷</span><div><h1>History</h1><p>View your past conversations and workflow sessions.</p></div></header>
+      <div class="history-workspace">
+        <aside class="workspace-card history-sidebar" aria-label="Conversations">
+          <input type="search" class="workspace-input" [(ngModel)]="historyQuery" placeholder="Search history…" aria-label="Search history">
+          @for (entry of matchingConversations; track entry.id) {
+            <button type="button" class="select-row" [class.selected]="selectedConversation?.id === entry.id" [attr.aria-pressed]="selectedConversation?.id === entry.id" (click)="selectedConversationId = entry.id">
+              <span aria-hidden="true">☏</span><strong>{{ entry.title }}</strong><small>{{ formatTime(entry.time) }}</small>
+            </button>
+          } @empty {
+            <p class="workspace-muted">{{ historyQuery.trim() ? 'No matching conversations.' : 'No conversations yet.' }}</p>
+          }
+        </aside>
+        <section class="workspace-card history-preview" aria-label="Conversation preview">
+          @if (selectedConversation; as entry) {
+            <header class="preview-toolbar">
+              <span class="section-icon" aria-hidden="true">☏</span>
+              <div><h2>{{ entry.title }}</h2><small>{{ formatDate(entry.time) }}, {{ formatTime(entry.time) }} · Ganalimura AI Assistant</small></div>
+              <button type="button" class="workspace-button" [disabled]="loading" (click)="restoreConversation(entry)">↻ &nbsp; Restore Chat</button>
+            </header>
+            <div class="preview-stream">
+              @for (message of entry.messages; track $index) {
+                <article class="preview-message" [class.from-user]="message.role === 'user'">
+                  <span class="preview-avatar" aria-hidden="true">{{ message.role === 'user' ? '♙' : '✦' }}</span>
+                  <div>
+                    <header><strong>{{ message.role === 'user' ? 'You' : 'Ganalimura AI Assistant' }}</strong><small>{{ formatTime(message.time) }}</small></header>
+                    <p>{{ message.text }}</p>
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <div class="workspace-empty"><span class="section-icon" aria-hidden="true">◷</span><h2>{{ historyQuery.trim() ? 'No matches found' : 'Your conversations will appear here' }}</h2><p>{{ historyQuery.trim() ? 'Try another search.' : 'Start a chat to ask a question or run a workflow.' }}</p>
+              @if (!historyQuery.trim()) { <button type="button" class="workspace-button primary-action" (click)="setTab('run')">Open Chat</button> }
+            </div>
+          }
+        </section>
+      </div>
+    </main>
+
+    <main class="info-page" *ngIf="currentTab==='about'">
+      <div class="info-heading"><span class="header-brand-icon">ⓘ</span><div><h1>About Workflow Assistant</h1><p>Conversational access to your YAML-driven workflows.</p></div></div>
+      <section class="about-card"><h2>Secure, workflow-backed answers</h2><p>The assistant runs the selected YAML workflow through the workflow runtime and presents its returned data. Credentials stay on the server; workflow definitions control which registered actions can run.</p><button *ngIf="isMaster" (click)="setTab('designer')">View workflow definitions</button></section>
+    </main>
+
+    <main class="reference-page studio-page" *ngIf="currentTab==='designer' && isMaster">
+      @if (addingFlow) {
+        <app-workflow-designer (saved)="openAddedFlow($event)" (dismissed)="addingFlow = false" />
+      } @else {
+      <header class="info-heading">
+        <span class="section-icon" aria-hidden="true">⌘</span>
+        <div><h1>Workflow Studio</h1><p>View, edit, and run your configured workflows.</p></div>
+        <div class="studio-actions">
+          <button type="button" class="workspace-button" (click)="saveStudioFile()" [disabled]="studioBusy || !studioPath">▣ &nbsp; Save</button>
+          <button type="button" class="workspace-button primary-action" (click)="runStudioFlow()" [disabled]="studioBusy || loading || !canRunStudioFlow">▷ &nbsp; Run</button>
+          <button type="button" class="workspace-button" (click)="showNewFile = !showNewFile" [attr.aria-expanded]="showNewFile">New file</button>
+          <button type="button" class="workspace-button primary-action" [disabled]="studioBusy" (click)="addingFlow = true">+ Add Flow</button>
+        </div>
+      </header>
+      <p class="studio-feedback" role="status" *ngIf="studioNotice">{{ studioNotice }}</p>
+      <form class="workspace-card studio-create" *ngIf="showNewFile" (ngSubmit)="createStudioFile()">
+        <label>Path relative to definitions/<input class="workspace-input" name="newPath" [(ngModel)]="newFilePath" placeholder="workflows/new-flow.yaml" required></label>
+        <button class="workspace-button primary-action" type="submit" [disabled]="studioBusy || !newFilePath.trim()">Create file</button>
+        <button class="workspace-button" type="button" (click)="showNewFile=false">Cancel</button>
+      </form>
+      <div class="studio-layout">
+        <aside class="workspace-card studio-library">
+          <header class="mini-header"><h2>Definition Files</h2><button type="button" class="workspace-button icon-button" aria-label="Refresh files" (click)="refreshStudioFiles()" [disabled]="studioBusy">↻</button></header>
+          <input type="search" class="workspace-input" [(ngModel)]="studioQuery" placeholder="Search files…" aria-label="Search definition files">
+          @for (file of filteredStudioFiles; track file.path) {
+            <button type="button" class="select-row" [class.selected]="studioPath===file.path" [attr.aria-pressed]="studioPath===file.path" [disabled]="studioBusy" (click)="openStudioFile(file.path)">
+              <span class="file-format">{{ fileIcon(file) }}</span><strong>{{file.path}}</strong>
+            </button>
+          } @empty {
+            <p class="workspace-muted">{{ studioBusy ? 'Loading files…' : 'No definition files found.' }}</p>
+          }
+        </aside>
+        <section class="workspace-card studio-main">
+          <header class="preview-toolbar">
+            <div><h2>{{ studioFlow?.name || studioPath || 'Select a definition file' }}</h2><small>{{ studioPath }}</small></div>
+            @if (studioFlow) {
+              <div class="view-switch" aria-label="Editor view">
+                <button type="button" [class.selected]="studioView==='canvas'" [attr.aria-pressed]="studioView==='canvas'" (click)="studioView='canvas'">Canvas</button>
+                <button type="button" [class.selected]="studioView==='source'" [attr.aria-pressed]="studioView==='source'" (click)="studioView='source'">Source</button>
+              </div>
+            }
+          </header>
+          @if (studioView === 'canvas' && studioFlow; as flow) {
+            <div class="studio-canvas">
+              <div class="flow-node terminal-node"><span aria-hidden="true">▶</span> Start</div>
+              @for (step of flow.steps; track $index; let index = $index) {
+                <span class="flow-connector" [class.detached]="index !== 0 && stepLinks(flow.steps[index - 1], step)[0]?.id !== step.id" aria-hidden="true"></span>
+                <button type="button" class="flow-node" [class.terminal-node]="step.type === 'end' || step.type === 'return'" [class.decision-node]="step.type === 'condition'" [class.selected]="selectedStep?.id === step.id" [attr.aria-pressed]="selectedStep?.id === step.id" [id]="'flow-step-' + step.id" (click)="selectStep(step.id)">
+                  <span aria-hidden="true">{{ step.type === 'condition' ? '◇' : step.type === 'end' || step.type === 'return' ? '✓' : '⬡' }}</span><span>{{ step.name || step.id }}<small>{{ step.toolName || step.action || step.type }}</small></span>
+                </button>
+                @if (step.type === 'condition' || stepLinks(step, flow.steps[index + 1])[0]?.id !== flow.steps[index + 1]?.id) {
+                  <div class="flow-branches">
+                    @for (link of stepLinks(step, flow.steps[index + 1]); track link.label) {
+                      <button type="button" [class.yes-link]="link.label === 'Yes'" [class.no-link]="link.label === 'No' || link.label === 'Error'" (click)="selectStep(link.id)">{{ link.label }} → {{ link.id }}</button>
+                    }
+                  </div>
+                }
+              } @empty { <p class="workspace-muted">This workflow has no steps.</p> }
+            </div>
+          } @else {
+            <textarea class="studio-source" [(ngModel)]="studioContent" spellcheck="false" aria-label="Definition source" [disabled]="studioBusy || !studioPath" placeholder="Select a YAML or XML definition."></textarea>
+          }
+        </section>
+        <aside class="workspace-card studio-properties">
+          <header class="mini-header"><h2>Properties</h2>
+            @if (selectedStep) { <button type="button" class="workspace-button icon-button" aria-label="Show workflow properties" (click)="selectedStep=null">×</button> }
+          </header>
+          @if (selectedStep; as step) {
+            <dl><dt>Name</dt><dd>{{ step.name || step.id }}</dd><dt>Type</dt><dd>{{ step.type }}</dd><dt>Step ID</dt><dd>{{ step.id }}</dd></dl>
+          } @else if (studioFlow; as flow) {
+            <dl><dt>Name</dt><dd>{{ flow.name || flow.id }}</dd><dt>Description</dt><dd>{{ flow.description || 'No description' }}</dd><dt>Workflow ID</dt><dd>{{ flow.id }}</dd><dt>Version</dt><dd>{{ flow.version || '—' }}</dd></dl>
+          } @else if (studioPath) {
+            <dl><dt>Path</dt><dd>{{ studioPath }}</dd><dt>Format</dt><dd>{{ studioType.toUpperCase() }}</dd></dl>
+          } @else {
+            <p class="workspace-muted">Select a file to view its properties.</p>
+          }
+        </aside>
+      </div>
+      }
+    </main>

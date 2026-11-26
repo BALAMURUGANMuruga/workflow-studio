@@ -1,0 +1,121 @@
+# Inputs: target type, target name, trace level, and optional server. Output: a success message or an API error.
+# PyYAML loads the workflow. Python builds the dropdown choices and invokes the configured Sterling API.
+# Stable identifier used by the workflow catalog, template lookup, or step routing.
+id: trace-configuration
+# Name shown in the UI or key used to read this input at runtime.
+name: Trace Configuration
+# Definition version displayed with the workflow.
+version: '1.0'
+# Summary displayed in the workflow UI.
+description: Set the trace level for a Sterling API or Flow.
+# Declares how the workflow starts.
+trigger:
+  # Selects the trigger, input control, or runtime step handler.
+  type: ui
+  # Shared UI definition used to present this workflow.
+  ui: common-ui
+  # UI event that starts execution.
+  event: execute
+# Text configured for a successful execution.
+successMessage: Trace configuration updated successfully.
+# Form fields provided to the workflow as the inputs object.
+inputs:
+# Name shown in the UI or key used to read this input at runtime.
+- name: traceType
+  # Human-readable text shown in the UI.
+  label: Type
+  # Selects the trigger, input control, or runtime step handler.
+  type: select
+  # Controls whether the form requires this input.
+  required: true
+  # Initial input value or fallback error configuration, depending on its section.
+  default: API
+  # Choices and lookup settings for a dropdown.
+  options:
+    # List of fixed dropdown choices.
+    items:
+    # Human-readable text shown in the UI.
+    - label: API
+      # Value submitted when the corresponding option is selected.
+      value: API
+    # Human-readable text shown in the UI.
+    - label: Flow
+      # Value submitted when the corresponding option is selected.
+      value: FLOW
+# Name shown in the UI or key used to read this input at runtime.
+- name: traceName
+  # Human-readable text shown in the UI.
+  label: Name
+  # Selects the trigger, input control, or runtime step handler.
+  type: select
+  # Controls whether the form requires this input.
+  required: true
+  # Initial input value or fallback error configuration, depending on its section.
+  default: changeOrder
+  # Choices and lookup settings for a dropdown.
+  options:
+    # Input whose selection determines the available names.
+    dependsOn: traceType
+    # Build name choices from enabled APIs and registered workflows.
+    traceTargets: true
+    # Name choices grouped by the selected trace type.
+    byType:
+      API:
+      # Human-readable text shown in the UI.
+      - label: changeOrder
+        # Value submitted when the corresponding option is selected.
+        value: changeOrder
+# Name shown in the UI or key used to read this input at runtime.
+- name: traceLevel
+  # Human-readable text shown in the UI.
+  label: Trace Level
+  # Selects the trigger, input control, or runtime step handler.
+  type: string
+  # Controls whether the form requires this input.
+  required: true
+  # Initial input value or fallback error configuration, depending on its section.
+  default: VERBOSE
+# Name shown in the UI or key used to read this input at runtime.
+- name: serverName
+  # Human-readable text shown in the UI.
+  label: Server Name
+  # Selects the trigger, input control, or runtime step handler.
+  type: string
+  # Initial input value or fallback error configuration, depending on its section.
+  default: ''
+# Operations executed in order unless an explicit route is set.
+steps:
+# Stable identifier used by the workflow catalog, template lookup, or step routing.
+- id: modify-trace
+  # Name shown in the UI or key used to read this input at runtime.
+  name: Update trace configuration
+  # Selects the trigger, input control, or runtime step handler.
+  type: api
+  # Sterling operation invoked by the API step.
+  toolName: modifyTraces
+  # References templates or supplies the XML body from an earlier step.
+  xml_templates:
+    # Source of the request XML sent to Sterling.
+    request:
+      # Template ID in the shared XML bundle.
+      id: modify-trace
+  # Values passed to the API request template.
+  parameters:
+    # Selects a registered Python action or sets the trace operation in the API payload.
+    action: ADD
+    # Pass the selected API or FLOW target type.
+    traceType: ${inputs.traceType}
+    # Pass the selected operation name.
+    traceName: ${inputs.traceName}
+    # Pass the requested trace level.
+    traceLevel: ${inputs.traceLevel}
+    # Pass the optional Sterling server name.
+    serverName: ${inputs.serverName}
+# Stable identifier used by the workflow catalog, template lookup, or step routing.
+- id: show-result
+  # Selects the trigger, input control, or runtime step handler.
+  type: return
+  # Inputs to the action or fields included in a return step.
+  with:
+    # Text returned to the UI or shown when an operation fails.
+    message: Trace configuration updated successfully.

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Order Lookup Fixture</title>
+<h1>Order Lookup</h1>
+<form>
+  <label>Order Number <input data-testid="order-search" required></label>
+  <button data-testid="search-button">Search</button>
+</form>
+<p role="status"></p>
+<dl hidden>
+  <dt>Order number</dt><dd data-testid="order-number"></dd>
+  <dt>Status</dt><dd data-testid="order-status"></dd>
+  <dt>Customer</dt><dd data-testid="customer"></dd>
+  <dt>Total</dt><dd data-testid="order-total"></dd>
+  <dt>Item count</dt><dd data-testid="item-count"></dd>
+</dl>
+<script>
+  const orders = new Map([
+    ["TEST-1001", ["Released", "Sample Customer", "$125.50", "2"]],
+    ["TEST-1002", ["Held", "Test Buyer", "$42.00", "1"]]
+  ]);
+  const form = document.querySelector("form");
+  const details = document.querySelector("dl");
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    const id = form.querySelector("input").value.trim();
+    const order = orders.get(id);
+    details.hidden = !order;
+    document.querySelector("[role=status]").textContent = order ? "" : "Order not found";
+    if (order) [...details.querySelectorAll("dd")].forEach((field, index) => {
+      field.textContent = [id, ...order][index];
+    });
+  });
+</script>
+</html>

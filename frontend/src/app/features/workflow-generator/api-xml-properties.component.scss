@@ -1,0 +1,15 @@
+.api-config, label { display: grid; gap: .4rem; min-width: 0; }
+.api-config { padding: .5rem 0; }
+.new-template { display: grid; gap: .4rem; padding: .5rem; border: 1px solid var(--border); border-radius: .45rem; }
+small { color: var(--muted); }
+.template-mode { display: flex; flex-wrap: wrap; gap: .55rem; margin: 0; padding: .4rem; border: 1px solid var(--border); border-radius: .45rem; }
+.template-mode legend { color: var(--muted); font-size: .74rem; }
+.template-mode label { display: flex; align-items: center; gap: .3rem; }
+.template-mode input { width: auto; margin: 0; accent-color: #8859fa; }
+label, p, h3 { margin: 0; font-size: .76rem; color: var(--muted); }
+input, select, textarea, button { width: 100%; border: 1px solid var(--border); border-radius: .45rem; padding: .42rem .5rem; background: var(--field-background); color: var(--ink); }
+textarea { min-height: 7rem; resize: vertical; font: .78rem Consolas, monospace; }
+button:disabled { opacity: .55; cursor: default; }
+.confirm { background: var(--active-background); color: white; font-weight: 700; }
+pre { margin: 0; padding: .4rem; max-height: 14rem; overflow: auto; border: 1px solid var(--border); border-radius: .45rem; background: var(--surface); }
+[role=alert] { color: var(--ink); border-left: 3px solid #ed517b; padding-left: .4rem; }

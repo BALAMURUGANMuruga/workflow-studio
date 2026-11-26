@@ -1,0 +1,93 @@
+<!-- Request XML templates referenced by workflow steps. Runtime values are inserted into template placeholders. -->
+<InputTemplates>
+  <Input id="getorderdetailsinput">
+    <Order DocumentType="{{documentType}}"
+           EnterpriseCode="{{enterpriseCode}}"
+           OrderHeaderKey="{{orderHeaderKey}}"
+           OrderNo="{{orderNo}}"/>
+  </Input>
+  <Input id="changeorderinput">
+    <Order DisplayLocalizedFieldInLocale="xml:CurrentUser:/User/@Localecode"
+           CallingOrganizationCode="{{callingOrganizationCode}}"
+           Action="{{action}}"
+           OrderHeaderKey="{{orderHeaderKey}}">
+      <OrderHoldTypes>
+        <OrderHoldType HoldLevel="{{holdLevel}}"
+                       HoldType="{{holdType}}"
+                       Status="{{status}}"
+                       ReasonText="{{reasonText}}"/>
+      </OrderHoldTypes>
+    </Order>
+  </Input>
+  <Input id="getholdtypelistinput">
+    <HoldType DisplayLocalizedFieldInLocale="xml:CurrentUser:/User/@Localecode"
+              CallingOrganizationCode="{{callingOrganizationCode}}"
+              DocumentType="{{documentType}}"
+              HoldLevel="{{holdLevel}}"
+              IgnoreOrdering="{{ignoreOrdering}}">
+      <OrderBy>
+        <Attribute Desc="{{orderByDescending}}" Name="{{orderByName}}"/>
+      </OrderBy>
+    </HoldType>
+  </Input>
+
+  <Input id="getorderlistinput">
+    <Order
+           OrderHeaderKey="{{orderHeaderKey}}"
+           />
+    
+  </Input>
+
+ <Input id="createorderinput">
+<Order CustomerEMailID="approve@forter.com" DocumentType="0001" EnteredBy="DESKTOP" EnterpriseCode="COACH_US" EntryType="RETAIL_ECOMM" OrderDate="2025-02-07T08:42:57.493Z" OrderNo="{{orderNo}}" SellerOrganizationCode="COACH_US_ECOMM_FP" PriorityCode="UPDATED" SourcingClassification="" DraftOrderFlag="N" PaymentStatus="AUTHORIZED">
+	<Notes>
+		<Note NoteText="Klarna Virtual Card Number" ReasonCode="PAYMENT_INDICATOR"/>
+	</Notes>
+	<Extn ExtnLocale="en_US" ExtnGiftFlag="N" ExtnKountSessionID="" ExtnKountTransactionID="" ExtnCheckoutType="GUEST" ExtnFraudVendor="FORTER" ExtnIsPorter="N" ExtnIsSuperPorter="N" ExtnTotalAmount="900.79" ExtnCustomerNo="" ExtnShopRunner="N" ExtnSRAuthenticationToken="" ExtnGiftWrap="N" ExtnIsVertexFailure="N" ExtnStorefrontConfigVersion="2.4" ExtnStorefrontPlatformVersion="18.10">
+		<TPRAdyenAuthResList>
+			<TPRAdyenAuthRes RecurringDetailReference="WPLL78ZDQ45JFH65" Alias="C118160549674214" CardBin="411111"/>
+		</TPRAdyenAuthResList>
+	</Extn>
+	<OrderLines>
+		<OrderLine FulfillmentType="REGULAR" GiftFlag="N" GiftWrap="N" LineType="REGULAR" OrderedQty="1.0" PrimeLineNo="1" SCAC="DEFAULT" SubLineNo="1" ShipNode="JP01_ECO" DeliveryMethod="SHP" CarrierServiceCode="STANDARD" ReservationID="CUQ00015878">
+			<Item ItemID="ItemCatX4" ItemDesc="QA_AUTO Cassie Crossbody 19" ItemShortDesc="QA_AUTO Cassie Crossbody 19" UPCCode="193971587035" UnitOfMeasure="EACH"/>
+			<PersonInfoShipTo AddressLine1="55 New Address" AddressLine2="Ste 1500" City="Musashino-shi" Country="JP" DayPhone="2812221063" EMailID="anv.pec@gmail.com" FirstName="Anvesh" LastName="Kamireddy" State="Tokyo" ZipCode="113-1005" IsPOBox="N"/>
+			<Extn ExtnOMSShippingMethodID="" ExtnPrivateSaleID="" ExtnClearanceFlag="Y" ExtnIsCoachtopia="N" ExtnIncludeDustBag="N" ExtnInventoryState="IN-STOCK" ExtnAnticipatedDeliveryDate="2025-01-09T19:53:36.386Z" ExtnFinalSale="N" ExtnProductCustomizationDesignID="" ExtnProductCustomizationRenderURL="" ExtnProductCustomizationDetailsURL="" ExtnProductCustomizationDetailsStrucURL="" ExtnProductCustomizationTransactionID="" ExtnProductCustomizationProgramID="" ExtnProductCustomizationProviderID="" ExtnProductCustomizationSupplierID="" ExtnProductCustomizationBaseSKU="" ExtnMonogramEmbossCode="" ExtnMonogramFontName="" ExtnMonogramFontSize="" ExtnMonogramInitials="" ExtnMonogramPlacementCode="" ExtnMonogramPosition="" ExtnMonogramPreviewURL="" ExtnProductLineItemID="" ExtnColorCode="SV/BK" ExtnColorDescription="Silver/Black" ExtnSize=""/>
+			<LinePriceInfo IsPriceLocked="Y" ListPrice="350.00" RetailPrice="229.0" UnitPrice="229.00"/>
+			<LineTaxes>
+				<LineTax TaxName="STATE" Tax="14.31" TaxPercentage="0.0625" Reference1="14.31" Reference2="0.0625" ChargeCategory="Price" ChargeName="GST"/>
+				<LineTax TaxName="CITY" Tax="2.29" TaxPercentage="0.01" Reference1="2.29" Reference2="0.01" ChargeCategory="Price" ChargeName="GST"/>
+				<LineTax TaxName="DISTRICT" Tax="2.29" TaxPercentage="0.01" Reference1="2.29" Reference2="0.01" ChargeCategory="Price" ChargeName="GST"/>
+			</LineTaxes>
+		</OrderLine>
+		<OrderLine FulfillmentType="REGULAR" GiftFlag="N" GiftWrap="N" LineType="REGULAR" OrderedQty="1.0" PrimeLineNo="2" SCAC="DEFAULT" SubLineNo="1" ShipNode="JP01_ECO" DeliveryMethod="SHP" CarrierServiceCode="STANDARD" ReservationID="CUQ00015878">
+			<Item ItemID="ItemCatX4" ItemDesc="QA_AUTO Cassie Crossbody 19" ItemShortDesc="QA_AUTO Cassie Crossbody 19" UPCCode="193971587035" UnitOfMeasure="EACH"/>
+			<PersonInfoShipTo AddressLine1="55 New Address" AddressLine2="Ste 1500" City="Musashino-shi" Country="JP" DayPhone="2812221063" EMailID="anv.pec@gmail.com" FirstName="Anvesh" LastName="Kamireddy" State="Tokyo" ZipCode="113-1005" IsPOBox="N"/>
+			<Extn ExtnOMSShippingMethodID="" ExtnPrivateSaleID="" ExtnClearanceFlag="Y" ExtnIsCoachtopia="N" ExtnIncludeDustBag="N" ExtnInventoryState="IN-STOCK" ExtnAnticipatedDeliveryDate="2025-01-09T19:53:36.386Z" ExtnFinalSale="N" ExtnProductCustomizationDesignID="" ExtnProductCustomizationRenderURL="" ExtnProductCustomizationDetailsURL="" ExtnProductCustomizationDetailsStrucURL="" ExtnProductCustomizationTransactionID="" ExtnProductCustomizationProgramID="" ExtnProductCustomizationProviderID="" ExtnProductCustomizationSupplierID="" ExtnProductCustomizationBaseSKU="" ExtnMonogramEmbossCode="" ExtnMonogramFontName="" ExtnMonogramFontSize="" ExtnMonogramInitials="" ExtnMonogramPlacementCode="" ExtnMonogramPosition="" ExtnMonogramPreviewURL="" ExtnProductLineItemID="" ExtnColorCode="SV/BK" ExtnColorDescription="Silver/Black" ExtnSize=""/>
+			<LinePriceInfo IsPriceLocked="Y" ListPrice="350.00" RetailPrice="229.0" UnitPrice="229.00"/>
+			<LineTaxes>
+				<LineTax TaxName="STATE" Tax="14.31" TaxPercentage="0.0625" Reference1="14.31" Reference2="0.0625" ChargeCategory="Price" ChargeName="GST"/>
+				<LineTax TaxName="CITY" Tax="2.29" TaxPercentage="0.01" Reference1="2.29" Reference2="0.01" ChargeCategory="Price" ChargeName="GST"/>
+				<LineTax TaxName="DISTRICT" Tax="2.29" TaxPercentage="0.01" Reference1="2.29" Reference2="0.01" ChargeCategory="Price" ChargeName="GST"/>
+			</LineTaxes>
+		</OrderLine>
+	</OrderLines>
+	<References>
+		<Reference Name="PAYMENT_TYPE" Value="KLARNA"/>
+	</References>
+	<PersonInfoShipTo AddressLine1="55 New Address" AddressLine2="Ste 1500" City="Musashino-shi" Country="JP" DayPhone="2812221063" EMailID="anv.pec@gmail.com" FirstName="Anvesh" LastName="Kamireddy" State="Tokyo" ZipCode="113-1005" IsPOBox="N"/>
+	<PersonInfoBillTo AddressLine1="55 New Address" AddressLine2="Ste 1500" City="Musashino-shi" Country="JP" DayPhone="2812221063" EMailID="anv.pec@gmail.com" FirstName="Anvesh" LastName="Kamireddy" State="Tokyo" ZipCode="113-1005" IsPOBox="N"/>
+	<PriceInfo Currency="USD"/>
+	<PaymentMethods>
+		<PaymentMethod CreditCardExpDate="3/2030" CreditCardNo="1111" CreditCardType="VISA" DisplayCreditCardNo="1111" PaymentReference1="CUQ00015878" PaymentReference2="LXB5S6CPRWCP8S65" PaymentReference3="WPLL78ZDQ45JFH65" PaymentReference8="061862" PaymentType="CREDIT_CARD" MaxChargeLimit="248" UnlimitedCharges="N">
+			<PersonInfoBillTo AddressLine1="55 New Address" AddressLine2="Ste 1500" City="Musashino-shi" Country="JP" DayPhone="2812221063" EMailID="anv.pec@gmail.com" FirstName="Anvesh" LastName="Kamireddy" State="Tokyo" ZipCode="113-1005" IsPOBox="N"/>
+			<PaymentDetails AuthCode="061862" AuthorizationExpirationDate="2025-03-31T08:42:57.493Z" AuthorizationID="LXB5S6CPRWCP8S65" ChargeType="AUTHORIZATION" ProcessedAmount="248" RequestAmount="248"/>
+			<PaymentDetails ChargeType="CHARGE" ProcessedAmount="248" RequestAmount="248"/>
+		</PaymentMethod>
+	</PaymentMethods>
+</Order>
+</Input>
+  <Input id="modify-trace"><Traces>
+    <Trace Action="{{action}}" Level="{{traceLevel}}" Name="{{traceName}}" ServerName="{{serverName}}" Type="{{traceType}}"/>
+  </Traces></Input>
+</InputTemplates>

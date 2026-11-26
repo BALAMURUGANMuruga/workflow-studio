@@ -1,0 +1,150 @@
+/* Shared account-page layout, theme, and form styling for authentication screens. */
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.auth-page {
+  display: grid;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: auto;
+  justify-items: center;
+  align-items: safe center;
+  padding: 1.25rem;
+  background: radial-gradient(ellipse at 25% 5%, #321667, transparent 55%), #080d27;
+  color-scheme: dark;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 27rem;
+  padding: 1.6rem;
+  background: #131636;
+  border: 1px solid #443575;
+  border-radius: 1.2rem;
+  box-shadow: 0 1rem 3rem #02031880;
+}
+
+:host(.auth-dialog) .auth-page {
+  display: block;
+  min-height: 0;
+  max-height: none;
+  padding: 0;
+  background: transparent;
+}
+
+:host(.auth-dialog) .auth-card {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+
+h1 {
+  margin: 0 0 8px;
+  color: #f7f5ff;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+p {
+  color: #cac3e7;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+label {
+  display: block;
+  margin: 16px 0 7px;
+  color: #f7f5ff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 12px;
+  border: 1px solid #514277;
+  border-radius: 8px;
+  outline: none;
+  background: #1c1d46;
+  color: #f7f5ff;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:focus {
+    border-color: #4778dc;
+    box-shadow: 0 0 0 3px rgba(71, 120, 220, 0.12);
+  }
+
+  &:read-only {
+    background: #252448;
+  }
+}
+
+button {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 18px;
+  border: none;
+  border-radius: 9px;
+  background: linear-gradient(105deg, #6d59f2, #7532eb);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #6232dc;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &.secondary-button {
+    margin-top: 10px;
+    border: 1px solid #dbe2ea;
+    background: #fff;
+    color: #334155;
+
+    &:hover:not(:disabled) {
+      background: #f1f5f9;
+    }
+  }
+}
+
+.error-message,
+.success-message {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.error-message {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.success-message {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+a {
+  display: block;
+  margin-top: 18px;
+  color: #dcbbff;
+  text-align: center;
+  font-size: 14px;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

@@ -1,0 +1,101 @@
+<div class="user-settings">
+
+  <div class="page-header">
+    <div>
+      <h1>Connection Configuration</h1>
+      <p>Manage API, Call Center and Order Hub connections</p>
+    </div>
+  </div>
+
+  <!-- Success Message -->
+  @if (successMessage) {
+    <div class="success-message">
+      <span class="success-icon">✓</span>
+      <span>{{ successMessage }}</span>
+    </div>
+  }
+
+  <!-- Configuration -->
+  <div class="config-card">
+
+    <!-- Header -->
+    <div class="config-header">
+      <div>Service</div>
+      <div>Name</div>
+      <div>Password</div>
+      <div>URL</div>
+      <div>Action</div>
+    </div>
+
+    <!-- Rows -->
+    @for (config of connections; track config.id) {
+
+      <div class="config-row">
+
+        <!-- Service -->
+        <div class="service-name">
+          {{ config.label }}
+        </div>
+
+        <!-- Name -->
+        <input
+          type="text"
+          [(ngModel)]="config.name"
+          [disabled]="!config.isEditing"
+          placeholder="Enter name"
+        />
+
+        <!-- Password -->
+        <input
+          type="password"
+          [(ngModel)]="config.password"
+          [disabled]="!config.isEditing"
+          placeholder="Enter password"
+        />
+
+        <!-- URL -->
+        <input
+          type="text"
+          [(ngModel)]="config.url"
+          [disabled]="!config.isEditing"
+          placeholder="Enter URL"
+        />
+
+        <!-- Action -->
+        <div class="action">
+
+          @if (config.isEditing) {
+
+            <button
+              class="save-btn"
+              type="button"
+              (click)="save(config)">
+              Save
+            </button>
+
+            <button
+              class="cancel-btn"
+              type="button"
+              (click)="cancel(config)">
+              Cancel
+            </button>
+
+          } @else {
+
+            <button
+              class="edit-btn"
+              type="button"
+              (click)="edit(config)">
+              Edit
+            </button>
+
+          }
+
+        </div>
+
+      </div>
+    }
+
+  </div>
+
+</div>

@@ -1,0 +1,301 @@
+# LEGACY WORKFLOW SYNTAX REFERENCE
+# Documentation only. This syntax is for the legacy app.engine runner.
+# The current API stores workflows separately under app/definitions/flows/
+# and their presentation under app/definitions/ui/.
+#
+# VALUE MODES
+# Static: {mode: static, value: "fixed text/value"}
+# Dynamic: {mode: dynamic, source: "state.someValue"}
+# Expressions: ${inputs.name}, ${state.name}, ${configuration.name}
+# Table row context: row.fieldName
+
+workflow:
+  id: example-flow-id                 # static identifier; lowercase kebab-case
+  name: Example Flow                  # static display name
+  version: "1.0"
+  description: Example workflow description
+
+trigger:
+  type: chat
+  intent: example_intent
+  examples: ["example request", "another request"]
+
+ai:
+  enabled: true
+  understanding:
+    detect_intent: automatic
+    extract_entities: automatic
+    understand_followup_messages: true
+
+inputs:
+  - name: message
+    type: string
+    required: true
+    source: customer_message
+
+configuration:
+  apiName: getOrderDetails               # static configuration
+  enterpriseCode: COACH_US               # static configuration
+
+state:
+  inputXml: null
+  responseXml: null
+  result: null
+  errorMessage: null
+
+steps:
+  - id: prepare-request
+    type: python
+    action: allowed_backend_action
+    input:
+      message: "${inputs.message}"
+    output:
+      result: "$.result"
+    onSuccess: gotoStep call-api
+    onError: gotoStep workflow-error
+
+  - id: call-api
+    type: python
+    action: post_interop
+    input:
+      apiName: "${configuration.apiName}"
+      xmlPayload: "${state.inputXml}"
+    output:
+      responseXml: "$.xml"
+    onSuccess: gotoStep show-result
+    onError: gotoStep interop-api-error
+
+  - id: show-result
+    type: response
+    format: structured
+    onSuccess: gotoStep end
+
+# UI is a declarative presentation schema. It does not add backend actions.
+ui:
+  theme:
+    mode: light
+    primaryColor: {mode: static, value: "#2563EB"}
+    successColor: {mode: static, value: "#16A34A"}
+    warningColor: {mode: static, value: "#F59E0B"}
+    dangerColor: {mode: static, value: "#DC2626"}
+    backgroundColor: {mode: static, value: "#FFFFFF"}
+    textColor: {mode: static, value: "#1E293B"}
+    borderColor: {mode: static, value: "#E2E8F0"}
+    borderRadius: {mode: static, value: 8}
+
+  form:
+    title: {mode: static, value: "Order Search"}
+    description: {mode: dynamic, source: "state.formDescription"}
+    layout: vertical                 # vertical | horizontal | grid
+    columns: 2
+    fields:
+      - name: orderNo
+        type: text                  # text | number | textarea | date | datetime | time | file | hidden
+        label: {mode: static, value: "Order Number"}
+        placeholder: {mode: static, value: "Enter order number"}
+        default: {mode: dynamic, source: "inputs.orderNo"}
+        required: true
+        disabled: {mode: static, value: false}
+        visible: {mode: static, value: true}
+        validation: {minLength: 1, maxLength: 40}
+
+      - name: enterpriseCode
+        type: dropdown               # dropdown | multiselect
+        label: {mode: static, value: "Enterprise"}
+        options:
+          mode: static
+          items:
+            - {label: "Coach US", value: "COACH_US"}
+            - {label: "Coach Canada", value: "COACH_CA"}
+
+      - name: itemId
+        type: dropdown
+        label: {mode: static, value: "Item"}
+        options:
+          mode: dynamic
+          source: "state.availableItems"
+          labelField: itemDescription
+          valueField: itemId
+
+      - name: searchMode
+        type: radio
+        label: {mode: static, value: "Search Mode"}
+        default: {mode: static, value: "orderNo"}
+        options:
+          mode: static
+          items:
+            - {label: "Order Number", value: "orderNo"}
+            - {label: "Header Key", value: "orderHeaderKey"}
+
+      - name: includeLines
+        type: checkbox             # checkbox | switch
+        label: {mode: static, value: "Include Order Lines"}
+        default: {mode: static, value: true}
+
+      - name: includeSections
+        type: checkbox_group
+        label: {mode: static, value: "Include Sections"}
+        options:
+          mode: static
+          items:
+            - {label: "Payments", value: "payments"}
+            - {label: "Shipments", value: "shipments"}
+
+      - name: comments
+        type: textarea
+        label: {mode: static, value: "Comments"}
+        placeholder: {mode: static, value: "Optional notes"}
+        validation: {maxLength: 500}
+
+      - name: requestedDate
+        type: date
+        label: {mode: static, value: "Requested Date"}
+
+      - name: attachment
+        type: file
+        label: {mode: static, value: "XML Attachment"}
+        accept: [".xml"]
+        maxSizeMB: 5
+
+  # General reusable visual components
+  components:
+    - id: order-panel
+      type: container             # container | row | column | divider
+      title: {mode: static, value: "Order Summary"}
+      background: {mode: static, value: "#FFFFFF"}
+      padding: {mode: static, value: 16}
+      gap: {mode: static, value: 12}
+      borderRadius: {mode: static, value: 8}
+
+    - id: order-label
+      type: label
+      content: {mode: static, value: "Order Number"}
+      color: {mode: static, value: "#64748B"}
+
+    - id: order-number
+      type: text
+      content: {mode: dynamic, source: "state.orderNo"}
+      color: {mode: static, value: "#0F172A"}
+
+    - id: status-badge
+      type: badge
+      content: {mode: dynamic, source: "state.orderStatus"}
+      color: {mode: dynamic, source: "state.statusColor"}
+      variant: {mode: static, value: "soft"}
+
+    - id: help-popover
+      type: popover
+      trigger:
+        label: {mode: static, value: "Help"}
+      content:
+        title: {mode: static, value: "Order status help"}
+        description: {mode: dynamic, source: "state.helpText"}
+
+    - id: refresh-button
+      type: button
+      label: {mode: static, value: "Refresh"}
+      color: {mode: static, value: "primary"}
+      action: refresh_order             # must map to an allowed action
+      visible: {mode: dynamic, source: "state.canRefresh"}
+
+    - id: error-alert
+      type: alert
+      content: {mode: dynamic, source: "state.errorMessage"}
+      color: {mode: static, value: "danger"}
+
+    - id: xml-viewer
+      type: code
+      language: xml
+      content: {mode: dynamic, source: "state.responseXml"}
+      collapsible: {mode: static, value: true}
+
+    - id: product-image
+      type: image
+      source: {mode: dynamic, source: "state.imageUrl"}
+      alt: {mode: static, value: "Product image"}
+
+    - id: documentation-link
+      type: link
+      label: {mode: static, value: "Interop API documentation"}
+      url: {mode: dynamic, source: "state.documentationUrl"}
+
+  # Table rows come from a dynamic array; column definitions are usually static.
+  tables:
+    - id: order-lines
+      title: {mode: static, value: "Order Lines"}
+      source: {mode: dynamic, source: "state.orderLines"}
+      pagination: {enabled: true, pageSize: 10, pageSizeOptions: [10, 25, 50]}
+      search: {enabled: true, placeholder: "Search order lines"}
+      sorting: {enabled: true}
+      selection: {enabled: false}
+      columns:
+        - key: itemId
+          label: {mode: static, value: "Item ID"}
+          type: text
+        - key: status
+          label: {mode: static, value: "Status"}
+          type: badge
+          colorMap:
+            Created: info
+            Released: warning
+            Shipped: success
+            Cancelled: danger
+        - key: orderedQty
+          label: {mode: static, value: "Quantity"}
+          type: number
+          align: right
+        - key: rowNote
+          label: {mode: dynamic, source: "state.quantityColumnLabel"}
+          type: text
+
+  # Conditional visibility and behavior. Conditions must use approved operators.
+  conditions:
+    - id: show-shipment-details
+      when:
+        source: state.orderStatus
+        operator: equals       # equals | not_equals | contains | greater_than | less_than | is_empty | is_not_empty | in | not_in
+        value: Shipped
+      then:
+        show: [shipment-details]
+      else:
+        hide: [shipment-details]
+
+  response:
+    title: {mode: static, value: "Order Details"}
+    sections:
+      - id: summary
+        type: container
+        fields:
+          - {label: "Order Number", type: text, source: "state.orderNo"}
+          - {label: "Order Status", type: badge, source: "state.orderStatus"}
+      - id: lines
+        type: table
+        tableId: order-lines
+
+validation:
+  mode: strict
+  rejectUnknownFields: true
+  rejectDuplicateFieldNames: true
+  validateRequiredFields: true
+  validateDropdownOptions: true
+  validateFieldTypes: true
+
+error_handlers:
+  - id: interop-api-error
+    type: response
+    message: "Interop API request failed."
+  - id: workflow-error
+    type: response
+    message: "Workflow execution failed."
+
+end:
+  id: end
+  type: end
+
+# IMPLEMENTATION NOTES
+# 1. This document is a syntax catalogue, not a live runtime schema.
+# 2. Static/dynamic value envelopes are a proposed convention; renderer support is required.
+# 3. Dynamic sources must resolve only from declared inputs, workflow state, configuration,
+#    or the current table row. Do not evaluate arbitrary code from YAML.
+# 4. UI actions must map to backend allowlisted actions; UI YAML cannot define Python code.
+# 5. Validate all customer-submitted values server-side, including hidden/disabled fields.

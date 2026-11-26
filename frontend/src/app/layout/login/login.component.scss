@@ -1,0 +1,75 @@
+:host {
+  color: #f7f5ff;
+  color-scheme: dark;
+}
+
+.signin-page {
+  display: grid;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: auto;
+  place-items: center;
+  padding: 1.25rem;
+  background: radial-gradient(ellipse at 25% 5%, #321667, transparent 55%), #080d27;
+}
+
+.signin-card, .modal-card {
+  width: min(100%, 27rem);
+  padding: 1.6rem;
+  border: 1px solid #443575;
+  border-radius: 1.2rem;
+  background: #131636;
+  box-shadow: 0 1rem 3rem #02031880;
+}
+
+.signin-mark {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border-radius: .8rem;
+  background: radial-gradient(circle at 95% 95%, #65cbff, transparent 50%), linear-gradient(140deg, #a34bfd, #4426db);
+  font-size: 1.55rem;
+}
+
+h1 { margin: .8rem 0 .2rem; font-size: 1.55rem; }
+p { margin: .3rem 0 1.2rem; color: #cac3e7; }
+form { display: grid; gap: .55rem; }
+label { margin-top: .35rem; font-size: .88rem; }
+input:not([type=checkbox]), select {
+  width: 100%;
+  min-height: 2.6rem;
+  padding: .55rem .7rem;
+  border: 1px solid #514277;
+  border-radius: .6rem;
+  background: #1c1d46;
+  color: #f7f5ff;
+}
+.password-field { display: flex; gap: .5rem; }
+.remember { display: flex; align-items: center; gap: .4rem; }
+.signin-submit {
+  min-height: 2.65rem;
+  margin-top: .6rem;
+  border: 1px solid #9465ff;
+  border-radius: .7rem;
+  background: linear-gradient(105deg, #6d59f2, #7532eb);
+  color: white;
+  font-weight: 700;
+}
+.signin-submit:disabled { opacity: .65; }
+.text-link { padding: .35rem; border: 0; background: transparent; color: #dcbbff; }
+.account-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .35rem; margin-top: .75rem; }
+.signin-error { margin: .3rem 0 0; color: #ffa9c3; }
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  align-items: safe center;
+  justify-items: center;
+  overflow: auto;
+  padding: 1rem;
+  background: #05091ed9;
+}
+.modal-card { position: relative; }
+.modal-close { position: absolute; z-index: 1; top: .55rem; right: .65rem; font-size: 1.25rem; }

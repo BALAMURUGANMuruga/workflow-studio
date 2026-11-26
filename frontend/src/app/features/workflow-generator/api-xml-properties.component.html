@@ -1,0 +1,105 @@
+<!-- Show configuration for the selected call type and request and response XML template options. -->
+<section class="api-config">
+  <label>Call Type
+    <select [(ngModel)]="callType" (ngModelChange)="clearFeedback()" [disabled]="disabled() || working">
+      <option value="api">API</option>
+      <option value="flow">Flow</option>
+    </select>
+  </label>
+  @if (callType === 'flow') {
+    <label>Service Name
+      <input [(ngModel)]="serviceName" (ngModelChange)="clearFeedback()" [disabled]="disabled() || working" placeholder="e.g. test">
+    </label>
+  } @else {
+    <label>API Name
+      <input [(ngModel)]="apiName" (ngModelChange)="clearFeedback()" [disabled]="disabled() || working" placeholder="e.g. getTraceList">
+    </label>
+  }
+  <h3>Request XML</h3>
+  <fieldset class="template-mode">
+    <legend>Request template source</legend>
+    <label><input type="radio" name="request-template-mode" value="new" [ngModel]="sourceMode.request" (ngModelChange)="setTemplateMode('request', $event)" [disabled]="disabled() || working">New template</label>
+    <label><input type="radio" name="request-template-mode" value="existing" [ngModel]="sourceMode.request" (ngModelChange)="setTemplateMode('request', $event)" [disabled]="disabled() || working">Existing template</label>
+    <label><input type="radio" name="request-template-mode" value="workflow" [ngModel]="sourceMode.request" (ngModelChange)="setTemplateMode('request', $event)" [disabled]="disabled() || working">Previous XML output</label>
+  </fieldset>
+  @if (sourceMode.request === 'existing') {
+    <label>Request template
+      <select [ngModel]="requestKey" (ngModelChange)="useTemplate('request', $event)" [disabled]="disabled() || working">
+        <option value="">Select a request template</option>
+        @for (template of options('request'); track key(template)) {
+          <option [value]="key(template)">{{ template.name || template.id }} · {{ template.id }}</option>
+        }
+      </select>
+    </label>
+  }
+  @if (sourceMode.request === 'workflow') {
+    @if (dataSources().length) {
+      <label>Workflow output
+        <select [ngModel]="dataSources().includes(requestPath) ? requestPath : ''" (ngModelChange)="requestPath = $event; clearFeedback()" [disabled]="disabled() || working">
+          <option value="">Select a workflow output</option>
+          @for (path of dataSources(); track path) { <option [value]="path">{{ path }}</option> }
+        </select>
+      </label>
+    }
+    <label>XML source path
+      <input [(ngModel)]="requestPath" (ngModelChange)="clearFeedback()" [disabled]="disabled() || working" placeholder="variables.api_response.xml">
+    </label>
+    <small>Use a prior API’s XML output or a Prompt Transform that returns XML.</small>
+  } @else {
+  <textarea aria-label="Request XML" [(ngModel)]="requestXml" (ngModelChange)="clearFeedback()" [disabled]="disabled() || working" maxlength="200000" spellcheck="false" placeholder="Paste or edit the request XML"></textarea>
+  @if (parameterNames.length) {
+    <h3>Request Parameters</h3>
+    @for (name of parameterNames; track name) {
+      <label>{{ name }}<input [(ngModel)]="parameterValues[name]" (ngModelChange)="clearFeedback()" [disabled]="disabled() || working"></label>
+    }
+  }
+  <button type="button" (click)="previewJson(requestXml)" [disabled]="disabled() || working || !requestXml.trim()">Convert request XML to JSON</button>
+  @if (canSaveTemplates && sourceMode.request === 'new') {
+    <ng-container [ngTemplateOutlet]="templateEditor" [ngTemplateOutletContext]="{ draft: templateDrafts.request, save: 'request' }"></ng-container>
+  }
+  }
+
+  <h3>Response Template</h3>
+  <fieldset class="template-mode">
+    <legend>Response template source</legend>
+    <label><input type="radio" name="response-template-mode" value="new" [ngModel]="sourceMode.response" (ngModelChange)="setTemplateMode('response', $event)" [disabled]="disabled() || working">New template</label>
+    <label><input type="radio" name="response-template-mode" value="existing" [ngModel]="sourceMode.response" (ngModelChange)="setTemplateMode('response', $event)" [disabled]="disabled() || working">Existing template</label>
+  </fieldset>
+  @if (sourceMode.response === 'existing') {
+    <label>Response template
+      <select [ngModel]="responseKey" (ngModelChange)="useTemplate('response', $event)" [disabled]="disabled() || working">
+        <option value="">Select a response template</option>
+        @for (template of options('response'); track key(template)) {
+          <option [value]="key(template)">{{ template.name || template.id }} · {{ template.id }}</option>
+        }
+      </select>
+    </label>
+  }
+  <textarea aria-label="Response XML" [(ngModel)]="responseXml" (ngModelChange)="clearFeedback()" [disabled]="disabled() || working" maxlength="200000" spellcheck="false" placeholder="Optional response template or sample XML"></textarea>
+  <button type="button" (click)="previewJson(responseXml)" [disabled]="disabled() || working || !responseXml.trim()">Convert response XML to JSON</button>
+  @if (canSaveTemplates && sourceMode.response === 'new') {
+    <ng-container [ngTemplateOutlet]="templateEditor" [ngTemplateOutletContext]="{ draft: templateDrafts.response, save: 'response' }"></ng-container>
+  }
+  <label>API output
+    <select [(ngModel)]="format" (ngModelChange)="clearFeedback()" [disabled]="disabled() || working">
+      <option value="json">JSON only</option>
+      <option value="xml">XML only</option>
+      <option value="">Default workflow output</option>
+    </select>
+  </label>
+  <label>Save response as
+    <input [(ngModel)]="outputName" (ngModelChange)="clearFeedback()" [disabled]="disabled() || working">
+  </label>
+  @if (preview) { <h3>JSON Preview</h3><pre>{{ preview }}</pre> }
+  @if (error) { <p role="alert">{{ error }}</p> }
+  @if (feedback) { <p role="status">{{ feedback }}</p> }
+  <button type="button" class="confirm" [disabled]="disabled() || working || !hasCallName" (click)="confirm()">Confirm API Settings</button>
+</section>
+<ng-template #templateEditor let-draft="draft" let-kind="save">
+  <div class="new-template">
+    <small>Save the XML above as a reusable template.</small>
+    <label>Template ID<input [(ngModel)]="draft.id" maxlength="80" placeholder="get-trace-list" [disabled]="disabled() || working"></label>
+    <label>Template Name<input [(ngModel)]="draft.name" maxlength="120" placeholder="Get Trace List" [disabled]="disabled() || working"></label>
+    <button type="button" class="confirm" (click)="saveTemplate(kind)" [disabled]="disabled() || working || !draft.id.trim() || !draft.name.trim()">Save XML Template</button>
+  </div>
+</ng-template>

@@ -1,0 +1,11 @@
+{
+  "search_input": "[data-testid='order-search']",
+  "search_button": "[data-testid='search-button']",
+  "fields": {
+    "order_number": "[data-testid='order-number']",
+    "status": "[data-testid='order-status']",
+    "customer": "[data-testid='customer']",
+    "total": "[data-testid='order-total']",
+    "item_count": "[data-testid='item-count']"
+  }
+}

@@ -1,0 +1,81 @@
+<aside class="side-navigation">
+  <div class="sidebar-brand">
+    <img
+      src="images/ganalimura-logo.png"
+      alt="Ganalimura"
+      class="sidebar-logo" />
+    <span class="brand-name">Ganalimura</span>
+  </div>
+
+  <nav class="navigation-menu">
+    <a href="/" class="nav-item"><span class="nav-label">Workflow Studio</span></a>
+
+     <a routerLink="/home/aichat" routerLinkActive="active" class="nav-item">
+      <span class="nav-icon">✦</span>
+      <span class="nav-label">Chat</span>
+    </a>
+
+    <a routerLink="/home/exception" routerLinkActive="active" class="nav-item">
+      <span class="nav-icon">⚠</span>
+      <span class="nav-label">Exception</span>
+    </a>
+
+    <a routerLink="/home/apidoc" routerLinkActive="active" class="nav-item">
+      <span class="nav-icon">⚙</span>
+      <span class="nav-label">API Doc</span>
+    </a>
+
+    <a href="/" class="nav-item">
+      <span class="nav-icon">▤</span>
+      <span class="nav-label">Order Workflows</span>
+    </a>
+
+    <a routerLink="/home/automation" routerLinkActive="active" class="nav-item">
+      <span class="nav-icon">🤖</span>
+      <span class="nav-label">Automation Testing</span>
+    </a>
+  </nav>
+
+  <div class="profile-area">
+    @if (isProfileMenuOpen) {
+      <div class="profile-menu-panel">
+        <div class="menu-heading">Appearance</div>
+
+        <button
+          type="button"
+          class="theme-menu-action"
+          (click)="toggleTheme()"
+          [attr.aria-pressed]="isDarkMode()"
+          aria-label="Toggle application theme">
+          <span class="menu-action-icon">{{ isDarkMode() ? '☾' : '☀' }}</span>
+
+          <span class="theme-action-copy">
+            <strong>{{ isDarkMode() ? 'Dark mode' : 'Light mode' }}</strong>
+            <small>Switch application theme</small>
+          </span>
+
+          <span class="menu-state">{{ isDarkMode() ? 'On' : 'Off' }}</span>
+        </button>
+
+        <a class="profile-settings-link" routerLink="/users" (click)="closeProfileMenu()">
+          ⚙ Profile &amp; connection settings
+        </a>
+      </div>
+    }
+
+    <button
+      type="button"
+      class="user-profile"
+      [class.profile-open]="isProfileMenuOpen"
+      (click)="toggleProfileMenu()"
+      [attr.aria-expanded]="isProfileMenuOpen"
+      aria-label="Open profile and appearance settings">
+      <span class="profile-avatar">B</span>
+      <span class="profile-info">
+        <span class="profile-name">Balamurugan</span>
+        <span class="profile-role">Developer</span>
+      </span>
+      <span class="profile-chevron" [class.rotated]="isProfileMenuOpen">⌄</span>
+    </button>
+  </div>
+</aside>

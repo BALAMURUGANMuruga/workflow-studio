@@ -1,0 +1,26 @@
+[project]
+name = "ganalimura-workflow-studio"
+version = "3.0.0"
+description = "Ganalimura Workflow Studio — UI YAML + Flow YAML architecture with local AI chat"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.30,<1",
+    "PyYAML>=6.0,<7",
+    "pydantic>=2.8,<3",
+    "pydantic-settings>=2.0,<3",
+    "requests>=2.32,<3",
+    "xmltodict>=0.13,<1",
+    "lxml>=5,<7",
+    "python-dotenv>=1.0,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9",
+    "httpx>=0.27,<1",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"

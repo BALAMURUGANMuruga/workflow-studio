@@ -1,0 +1,162 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.api-page {
+  width: 100%;
+  height: calc(100vh - 75px);
+
+  padding: 22px 30px;
+
+  background: #f7f9fc;
+}
+
+
+/* =========================
+   DOCUMENT CARD
+   ========================= */
+
+.api-doc-card {
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  background: #ffffff;
+
+  border: 1px solid #dce5ee;
+  border-radius: 10px;
+
+  overflow: hidden;
+
+  box-shadow: 0 3px 12px rgba(30, 60, 90, 0.06);
+}
+
+
+/* =========================
+   HEADER
+   ========================= */
+
+.api-doc-header {
+  min-height: 82px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 16px 24px;
+
+  border-bottom: 1px solid #e3eaf1;
+
+  background: #ffffff;
+}
+
+.api-doc-header h2 {
+  margin: 0;
+
+  color: #193b63;
+
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.api-doc-header p {
+  margin: 5px 0 0;
+
+  color: #718198;
+
+  font-size: 13px;
+}
+
+
+/* =========================
+   OPEN BUTTON
+   ========================= */
+
+.open-doc-btn {
+  height: 36px;
+
+  padding: 0 16px;
+
+  border: 1px solid #1769b0;
+  border-radius: 6px;
+
+  background: #1769b0;
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.open-doc-btn:hover {
+  background: #12558e;
+  border-color: #12558e;
+}
+
+
+/* =========================
+   JAVADOC CONTAINER
+   ========================= */
+
+.javadoc-container {
+  flex: 1;
+
+  width: 100%;
+  min-height: 0;
+
+  background: #ffffff;
+
+  overflow: hidden;
+}
+
+
+/* =========================
+   JAVADOC IFRAME
+   ========================= */
+
+.javadoc-frame {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  border: none;
+
+  background: #ffffff;
+}
+
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 768px) {
+
+  .api-page {
+    padding: 15px;
+    height: calc(100vh - 65px);
+  }
+
+  .api-doc-header {
+    padding: 14px 16px;
+  }
+
+  .api-doc-header h2 {
+    font-size: 18px;
+  }
+
+  .open-doc-btn {
+    padding: 0 12px;
+  }
+}

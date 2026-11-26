@@ -1,0 +1,9 @@
+<InboxList TotalNumberOfRecords="">
+<Inbox ApiName="" Createts="" EnterpriseKey="" ErrorReason="" ErrorType="" ExceptionType="" FlowName=""  OrderNo="" Status="" >
+<Queue QueueId="" />
+<InboxReferencesList>
+<InboxReferences Name=""  Value=""/>
+</InboxReferencesList>
+<InboxAuditList/>
+</Inbox>
+</InboxList>

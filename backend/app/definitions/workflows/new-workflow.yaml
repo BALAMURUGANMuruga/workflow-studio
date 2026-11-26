@@ -1,0 +1,92 @@
+# Input: no form fields. Output: the scheduleOrder response is stored in a workflow variable.
+# PyYAML loads the workflow. Python re and lxml rename the XML root before the next API call.
+# Stable identifier used by the workflow catalog, template lookup, or step routing.
+id: new-workflow
+# Name shown in the UI or key used to read this input at runtime.
+name: New Workflow
+# Definition version displayed with the workflow.
+version: '1.0'
+# Declares how the workflow starts.
+trigger:
+  # Selects the trigger, input control, or runtime step handler.
+  type: ui
+  # Shared UI definition used to present this workflow.
+  ui: common-ui
+  # UI event that starts execution.
+  event: execute
+# This workflow declares no form fields.
+inputs: []
+# Operations executed in order unless an explicit route is set.
+steps:
+# Sterling operation invoked by the API step.
+- toolName: createOrder
+  # References templates or supplies the XML body from an earlier step.
+  xml_templates:
+    # Source of the request XML sent to Sterling.
+    request:
+      # Template ID in the shared XML bundle.
+      id: createorderinput
+    # Template used for the API response.
+    response:
+      # Template ID in the shared XML bundle.
+      id: createorderoutput
+  # Values passed to the API request template.
+  parameters:
+    # Pass an empty order number to the request XML template.
+    orderNo: ''
+  # Controls whether the executor exposes XML or parsed JSON for this response.
+  responseFormat: xml
+  # Store the step output under variables for use by later steps.
+  saveAs: api_1_response
+  # Stable identifier used by the workflow catalog, template lookup, or step routing.
+  id: api-1
+  # Name shown in the UI or key used to read this input at runtime.
+  name: createOrder
+  # Selects the trigger, input control, or runtime step handler.
+  type: api
+# Selects a registered Python action or sets the trace operation in the API payload.
+- action: transform_with_prompt
+  # Inputs to the action or fields included in a return step.
+  with:
+    # Reads the XML string saved by the first API step.
+    data: ${variables.api_1_response.xml}
+    # Python matches this command with a regular expression and lxml renames the XML root.
+    prompt: change the root Order to ScheduleOrder
+  # Store the step output under variables for use by later steps.
+  saveAs: transformedResult
+  # Stable identifier used by the workflow catalog, template lookup, or step routing.
+  id: prompt-transform-1
+  # Name shown in the UI or key used to read this input at runtime.
+  name: Prompt Transform
+  # Selects the trigger, input control, or runtime step handler.
+  type: action
+# Sterling operation invoked by the API step.
+- toolName: scheduleOrder
+  # References templates or supplies the XML body from an earlier step.
+  xml_templates:
+    # Source of the request XML sent to Sterling.
+    request:
+      # Path to the data used for the request, mapping, or UI output.
+      source: ${variables.transformedResult}
+    # Template used for the API response.
+    response:
+      # Template ID in the shared XML bundle.
+      id: createorderoutput
+  # Values passed to the API request template.
+  parameters: {}
+  # Controls whether the executor exposes XML or parsed JSON for this response.
+  responseFormat: json
+  # Store the step output under variables for use by later steps.
+  saveAs: api_2_response
+  # Stable identifier used by the workflow catalog, template lookup, or step routing.
+  id: api-2
+  # Name shown in the UI or key used to read this input at runtime.
+  name: Call API
+  # Selects the trigger, input control, or runtime step handler.
+  type: api
+# Stable identifier used by the workflow catalog, template lookup, or step routing.
+- id: end
+  # Name shown in the UI or key used to read this input at runtime.
+  name: End Workflow
+  # Selects the trigger, input control, or runtime step handler.
+  type: end

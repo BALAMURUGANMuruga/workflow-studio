@@ -1,0 +1,53 @@
+<!-- Response XML templates referenced by template ID. These describe the fields requested from Sterling. -->
+<OutputTemplates>
+  <Template id="getorderdetailsresponse">
+    <Order PaymentStatus="" Status="" StatusDescription="" EnterpriseCode=""
+           OrderHeaderKey="" OrderNo="">
+      <OrderLines>
+        <OrderLine PrimeLineNo="" Status="" OrderedQty="">
+          <Item ItemID=""/>
+        </OrderLine>
+      </OrderLines>
+    </Order>
+  </Template>
+  <Template id="getorderdetailsheaderresponse">
+    <Order PaymentStatus="" Status="" StatusDescription="" EnterpriseCode=""
+           OrderHeaderKey="" OrderNo=""/>
+  </Template>
+  <Template id="getorderdetailsresponse3">
+    <Order OrderHeaderKey=""/>
+  </Template>
+  <Template id="changeorderresponse">
+    <Order OrderHeaderKey="" Status="" StatusDescription="">
+      <OrderHoldTypes>
+        <OrderHoldType HoldLevel="" HoldType="" Status="" ReasonText=""/>
+      </OrderHoldTypes>
+    </Order>
+  </Template>
+  <Template id="getholdtypelistresponse">
+    <HoldTypeList>
+      <HoldType>
+        <HoldTypeUserGroupList>
+          <HoldTypeUserGroup Permission="" UsergroupId=""/>
+        </HoldTypeUserGroupList>
+      </HoldType>
+    </HoldTypeList>
+  </Template>
+
+  <Template id="getorderlistresponse">
+    <OrderLineList >
+      <OrderLine>
+        <Order PaymentStatus="" Status="" EnterpriseCode="" OrderHeaderKey="" OrderNo="">
+          <OrderLines TotalNumberOfRecords="">
+            <OrderLine PrimeLineNo="" Status="" OrderedQty="">
+              <ItemDetails ItemID=""/>
+            </OrderLine>
+          </OrderLines>
+        </Order>
+      </OrderLine>
+    </OrderLineList>
+  </Template>
+  <Template id="createorderoutput">
+    <Order OrderNo="" OrderHeaderKey="" Status="" EnterpriseCode=""/>
+  </Template>
+</OutputTemplates>

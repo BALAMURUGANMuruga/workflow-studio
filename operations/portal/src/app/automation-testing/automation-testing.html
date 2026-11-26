@@ -1,0 +1,286 @@
+
+<section class="automation-page">
+
+  <div class="page-heading">
+    <div class="heading-title">
+      <div class="robot-icon">🤖</div>
+      <div>
+        <h2>Automation Testing</h2>
+        <p>Record, manage and execute order management UI tests with Playwright.</p>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button
+        class="btn btn-record"
+        *ngIf="!recording"
+        (click)="recordTest()">
+        ▶ Record
+      </button>
+
+      <button
+        class="btn btn-danger"
+        *ngIf="recording"
+        (click)="stopRecording()">
+        ■ Stop Recording
+      </button>
+
+      <button
+        class="btn btn-primary"
+        (click)="runTest()"
+        [disabled]="loading || recording || !selectedTest">
+        {{ loading ? 'Running...' : '▶ Run Test' }}
+      </button>
+
+      <button class="btn btn-outline" (click)="createTest()">
+        ＋ New Test Case
+      </button>
+    </div>
+  </div>
+
+  <div class="target-panel">
+    <label for="targetUrl">Order management application URL</label>
+
+    <input
+      id="targetUrl"
+      type="url"
+      [(ngModel)]="targetUrl"
+      placeholder="Enter the application URL" />
+
+    <span class="hint">Used when starting a recording.</span>
+  </div>
+
+  <div class="error-banner" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <div class="workspace-grid">
+
+    <section class="panel test-list-panel">
+      <div class="panel-heading">
+        <h3>Test Cases</h3>
+        <span class="count">{{ filteredTests.length }}</span>
+      </div>
+
+      <input
+        class="search-input"
+        type="search"
+        [(ngModel)]="searchText"
+        placeholder="Search test cases..." />
+
+      <div class="test-list">
+        <button
+          class="test-item"
+          *ngFor="let test of filteredTests"
+          [class.selected]="selectedTest?.id === test.id"
+          (click)="selectTest(test)">
+
+          <span class="test-name">{{ test.name }}</span>
+
+          <span
+            class="status"
+            [class.passed]="test.status === 'PASSED' || test.status === 'Passed'"
+            [class.failed]="test.status === 'FAILED' || test.status === 'Failed'"
+            [class.running]="test.status === 'Running' || test.status === 'Recording'"
+            [class.draft]="test.status === 'Draft'">
+            {{ test.status || 'Draft' }}
+          </span>
+
+          <small>Updated {{ test.updatedOn || 'Not yet run' }}</small>
+        </button>
+
+        <p class="empty-state" *ngIf="filteredTests.length === 0">
+          No test cases found.
+        </p>
+      </div>
+    </section>
+
+    <section class="panel steps-panel">
+      <ng-container *ngIf="selectedTest as test; else noTest">
+
+        <div class="panel-heading details-heading">
+          <div>
+            <h3>{{ test.name }}</h3>
+            <p>{{ test.description || 'Add a description for this test.' }}</p>
+          </div>
+
+          <span
+            class="status"
+            [class.passed]="test.status === 'PASSED' || test.status === 'Passed'"
+            [class.failed]="test.status === 'FAILED' || test.status === 'Failed'"
+            [class.draft]="test.status === 'Draft'">
+            {{ test.status || 'Draft' }}
+          </span>
+        </div>
+
+        <div class="target-panel">
+          <label for="testStartUrl">Test starting URL</label>
+          <input
+            id="testStartUrl"
+            type="url"
+            [(ngModel)]="test.startUrl"
+            placeholder="https://your-order-management-login-page.example.com" />
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Action</th>
+                <th>Target / Selector</th>
+                <th>Input Value</th>
+                <th>Expected Result</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr
+                *ngFor="let step of test.steps; let i = index; trackBy: trackByIndex">
+
+                <td>{{ i + 1 }}</td>
+
+                <td>
+                  <select [(ngModel)]="step.action">
+                    <option value="navigate">Open URL</option>
+                    <option value="click">Click</option>
+                    <option value="fill">Type / Fill</option>
+                    <option value="select">Select</option>
+                    <option value="assertText">Verify Text</option>
+                    <option value="assertVisible">Verify Visible</option>
+                    <option value="screenshot">Screenshot</option>
+                  </select>
+                </td>
+
+                <td>
+                  <input
+                    *ngIf="step.action === 'navigate'; else selectorInput"
+                    [(ngModel)]="step.url"
+                    placeholder="URL to navigate to" />
+
+                  <ng-template #selectorInput>
+                    <input
+                      [(ngModel)]="step.selector"
+                      placeholder="CSS selector, e.g. #username" />
+                  </ng-template>
+                </td>
+
+                <td>
+                  <input
+                    [(ngModel)]="step.value"
+                    [disabled]="step.action !== 'fill' && step.action !== 'select'"
+                    placeholder="Value" />
+                </td>
+
+                <td>
+                  <input
+                    [(ngModel)]="step.expected"
+                    [disabled]="step.action !== 'assertText'"
+                    placeholder="Expected text" />
+                </td>
+
+                <td>
+                  <span
+                    class="status"
+                    [class.passed]="step.status === 'PASSED' || step.status === 'Passed'"
+                    [class.failed]="step.status === 'FAILED' || step.status === 'Failed'">
+                    {{ step.status || 'Pending' }}
+                  </span>
+                </td>
+
+                <td>
+                  <button
+                    class="icon-button"
+                    type="button"
+                    title="Remove step"
+                    (click)="removeStep(i)">
+                    ×
+                  </button>
+                </td>
+              </tr>
+
+              <tr *ngIf="test.steps.length === 0">
+                <td colspan="7" class="empty-state">
+                  No steps yet. Start recording or add a step.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="steps-footer">
+          <span>
+            Total steps: <strong>{{ test.steps.length }}</strong>
+          </span>
+
+          <div class="toolbar">
+            <button class="btn btn-outline" (click)="addStep()">
+              ＋ Add Step
+            </button>
+
+            <button class="btn btn-primary" (click)="saveTest()">
+              Save Test
+            </button>
+          </div>
+        </div>
+
+      </ng-container>
+
+      <ng-template #noTest>
+        <div class="empty-state">
+          Select a test case or create a new one.
+        </div>
+      </ng-template>
+    </section>
+  </div>
+
+  <section class="panel results-panel">
+    <div class="panel-heading">
+      <h3>Execution Results</h3>
+
+      <button class="btn btn-outline" (click)="loadTestCases()">
+        ↻ Refresh
+      </button>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Test Case</th>
+            <th>Browser</th>
+            <th>Status</th>
+            <th>Last Updated</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let test of testCases">
+            <td>{{ test.name }}</td>
+            <td>Chromium</td>
+            <td>
+              <span
+                class="status"
+                [class.passed]="test.status === 'PASSED' || test.status === 'Passed'"
+                [class.failed]="test.status === 'FAILED' || test.status === 'Failed'"
+                [class.running]="test.status === 'Running' || test.status === 'Recording'"
+                [class.draft]="test.status === 'Draft'">
+                {{ test.status || 'Draft' }}
+              </span>
+            </td>
+            <td>{{ test.updatedOn || 'Not yet run' }}</td>
+          </tr>
+
+          <tr *ngIf="testCases.length === 0">
+            <td colspan="4" class="empty-state">
+              No test cases available.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</section>

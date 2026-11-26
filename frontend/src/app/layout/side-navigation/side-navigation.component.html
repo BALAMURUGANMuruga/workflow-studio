@@ -1,0 +1,43 @@
+<!-- Routes open feature pages. Other buttons emit tab or profile actions to the shell. -->
+<div class="brand">
+  <span class="brand-icon" aria-hidden="true">G</span>
+  <span class="brand-copy"><strong>Ganalimura AI</strong><small>Workflow &amp; AI Assistant</small></span>
+</div>
+
+<nav class="side-nav" aria-label="Assistant navigation">
+  <button [class.active]="currentTab() === 'run'" (click)="tabChange.emit('run')"><span class="nav-icon" aria-hidden="true">☏</span>Chat</button>
+  @if (isMaster()) {
+    <button [class.active]="currentTab() === 'designer'" (click)="tabChange.emit('designer')"><span class="nav-icon" aria-hidden="true">⌘</span>Workflow Studio</button>
+  }
+  <a routerLink="/home/workflow-generator" routerLinkActive="active"><span class="nav-icon" aria-hidden="true">⌘</span>Workflow YAML Create AI</a>
+  <a routerLink="/home/exception" routerLinkActive="active"><span class="nav-icon" aria-hidden="true">⚠</span>Exception</a>
+  <a routerLink="/home/automation" routerLinkActive="active"><span class="nav-icon" aria-hidden="true">▣</span>Automation Testing</a>
+  <a routerLink="/home/floorplan" routerLinkActive="active" ariaCurrentWhenActive="page"><span class="nav-icon" aria-hidden="true">◇</span>Floorplan</a>
+  <button [class.active]="currentTab() === 'history'" (click)="tabChange.emit('history')"><span class="nav-icon" aria-hidden="true">◷</span>History</button>
+  <button [class.active]="currentTab() === 'settings'" (click)="tabChange.emit('settings')"><span class="nav-icon" aria-hidden="true">⚙</span>Settings</button>
+  <button [class.active]="currentTab() === 'about'" (click)="tabChange.emit('about')"><span class="nav-icon" aria-hidden="true">ⓘ</span>About</button>
+</nav>
+
+@if (currentUser(); as user) {
+  @if (isProfileMenuOpen) {
+    <div class="profile-menu-panel">
+      <button type="button" (click)="toggleTheme()" [attr.aria-pressed]="isDarkMode()">Dark mode</button>
+      <button type="button" (click)="fullscreenToggle.emit(); closeProfileMenu()">Toggle full screen</button>
+      <button type="button" (click)="tabChange.emit('profile'); closeProfileMenu()">My profile</button>
+      <a routerLink="/home/users" (click)="closeProfileMenu()">Connection settings</a>
+      <button type="button" (click)="signOut.emit()">Sign out</button>
+    </div>
+  }
+  <div class="user-chip">
+    <span class="profile-avatar" aria-hidden="true">{{ (user.displayName || user.username).slice(0, 1).toUpperCase() }}</span>
+    <div class="user-chip-meta">
+      <strong>{{ user.displayName }}</strong>
+      <small>{{ user.role }}</small>
+    </div>
+    <button type="button" class="logout-btn" (click)="toggleProfileMenu()" [attr.aria-expanded]="isProfileMenuOpen" aria-label="Profile and appearance settings">⌄</button>
+  </div>
+}
+<div class="connection-card user-session">
+  <div class="connection-state"><span class="connected-dot"></span>Connected</div>
+  <small><span aria-hidden="true">◈</span> Workflow environment</small>
+</div>

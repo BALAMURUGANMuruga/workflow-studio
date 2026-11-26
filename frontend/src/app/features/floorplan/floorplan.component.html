@@ -1,0 +1,65 @@
+<section class="floorplan" aria-labelledby="floorplan-title">
+  <header>
+    <h1 id="floorplan-title">Floorplan</h1>
+    <p>Choose a path to see how it runs from the workspace to the result.</p>
+  </header>
+
+  <div class="path-picker" role="group" aria-label="Choose a workflow path">
+    @for (path of paths; track path.label) {
+      <button type="button" [attr.aria-pressed]="selectedPath === path" (click)="selectedPath = path">
+        {{ path.label }}
+      </button>
+    }
+  </div>
+
+  <section class="diagram" aria-live="polite">
+    <h2>{{ selectedPath.label }}</h2>
+    <ol>
+      @for (step of selectedPath.steps; track step.title; let last = $last) {
+        <li>
+          <div class="node">
+            <h3>{{ step.title }}</h3>
+            <p>{{ step.detail }}</p>
+          </div>
+          @if (!last) {
+            <span class="connector" aria-hidden="true"></span>
+          }
+        </li>
+      }
+    </ol>
+  </section>
+
+  <section class="diagram activity" aria-labelledby="activity-title">
+    <h2 id="activity-title">Live activity</h2>
+    <p>Requests made in this workspace since it opened.</p>
+    <ul class="activity-list">
+      @for (item of activity(); track item.id) {
+        <li class="activity-row">
+          <button class="activity-button" type="button"
+            [attr.aria-expanded]="selectedActivity() === item.id"
+            (click)="inspectActivity(item.id, item.path)">
+            <strong>{{ item.label }}</strong>
+            <time>{{ item.startedAt | date:'HH:mm:ss' }}</time>
+            <span [class.failed]="item.outcome === 'Failed'">{{ item.outcome }}</span>
+            @if (item.elapsedMs !== undefined) { <span>{{ item.elapsedMs }} ms</span> }
+          </button>
+          @if (selectedActivity() === item.id) {
+            <div class="activity-detail">
+              @if (item.httpStatus === 0) { <p>Connection to the server failed.</p> }
+              @else if (item.httpStatus !== undefined) { <p>HTTP {{ item.httpStatus }}</p> }
+              @if (item.steps?.length) {
+                <ul>
+                  @for (step of item.steps; track $index) {
+                    <li>{{ step.id }} · {{ step.status }}</li>
+                  }
+                </ul>
+              }
+            </div>
+          }
+        </li>
+      } @empty {
+        <li class="activity-row"><p>No requests yet. Run a workflow or browser test, or send a chat message, then return here.</p></li>
+      }
+    </ul>
+  </section>
+</section>

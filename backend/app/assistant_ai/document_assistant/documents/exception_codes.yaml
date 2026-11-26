@@ -1,0 +1,8 @@
+# Illustrative examples only. Verify exception codes and descriptions in your OMS environment.
+exceptions:
+  - code: YFS10137
+    description: Order validation failed
+    recommended_check: Review the API input and validation messages.
+  - code: YFC0001
+    description: General failure
+    recommended_check: Inspect the full error stack and application logs.

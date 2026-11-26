@@ -1,0 +1,381 @@
+<!-- Render the palette, graph, and properties panel. User actions update the workflow model in the component. -->
+<section class="designer" aria-label="Workflow Designer">
+  <header class="toolbar">
+    <strong>Workflow Designer</strong>
+    <button type="button" [class.primary]="canvasView === 'canvas'" (click)="canvasView = 'canvas'" [disabled]="busy">◇ Drag &amp; Drop</button>
+    <button type="button" [class.primary]="canvasView === 'yaml'" (click)="validate('yaml')" [disabled]="busy || !workflow">‹/› YAML View</button>
+    <button type="button" [class.primary]="canvasView === 'preview'" (click)="canvasView = 'preview'" [disabled]="busy || !workflow">Preview</button>
+    <button type="button" (click)="validate()" [disabled]="busy || !workflow">✓ Validate</button>
+    <button type="button" (click)="picker.click()" [disabled]="busy">↑ Import YAML</button>
+    <input #picker type="file" accept=".yaml,.yml,application/yaml" hidden (change)="importFile($event)">
+    <button type="button" (click)="validate('export')" [disabled]="busy || !workflow">↓ Export YAML</button>
+    <button type="button" class="prompt-button" [class.primary]="promptOpen" [attr.aria-expanded]="promptOpen" (click)="promptOpen = !promptOpen" [disabled]="busy"><span aria-hidden="true">✦</span> AI Prompt</button>
+  </header>
+
+  @if (promptOpen) {
+    <form class="panel prompt-panel" (ngSubmit)="promptForDraft()">
+      <label for="designer-prompt">Describe the workflow you want to find or generate</label>
+      <textarea id="designer-prompt" name="designerPrompt" [(ngModel)]="aiPrompt" maxlength="12000" [disabled]="busy" placeholder="Find the Create New Order workflow or paste a trace configuration specification"></textarea>
+      <details>
+        <summary>Sample XML</summary>
+        <textarea name="designerXml" aria-label="Sample XML" [(ngModel)]="aiXml" maxlength="200000" spellcheck="false" [disabled]="busy" placeholder="Paste XML if you want to extract an attribute"></textarea>
+      </details>
+      <button type="submit" class="primary" [disabled]="busy || !aiPrompt.trim()">Generate YAML Draft</button>
+      @if (aiError) { <p class="feedback error" role="alert">{{ aiError }}</p> }
+      @if (aiDraft) {
+        <div class="toolbar" aria-label="Generated draft previews">
+          <button type="button" [class.primary]="aiPreviewTab === 'yaml'" (click)="aiPreviewTab = 'yaml'">YAML</button>
+          <button type="button" [class.primary]="aiPreviewTab === 'result'" (click)="aiPreviewTab = 'result'">Result Preview</button>
+          <button type="button" [class.primary]="aiPreviewTab === 'code'" (click)="aiPreviewTab = 'code'">Python Code</button>
+        </div>
+        <pre>{{ aiPreviewTab === 'yaml' ? aiDraft : aiPreviewTab === 'result' ? aiDraftPreview : aiDraftCode }}</pre>
+        <button type="button" (click)="loadPromptDraft()" [disabled]="busy">Replace Canvas With Draft</button>
+      }
+    </form>
+  }
+
+  @if (error) { <p class="feedback error" role="alert">{{ error }}</p> }
+  @if (hasUnfinishedDetails) { <p class="feedback">Unfinished JSON is kept on its node. You can keep building and fix it before saving.</p> }
+  @if (status) { <p class="feedback" role="status">{{ status }}</p> }
+  @if (workflow; as flow) {
+    <div class="workspace">
+      <aside class="panel palette" aria-label="Workflow components" tabindex="0">
+        <header>
+          <button type="button" [class.primary]="!showTemplates" (click)="showTemplates = false">Components</button>
+          <button type="button" [class.primary]="showTemplates" (click)="openTemplates()">Templates</button>
+        </header>
+        @if (showTemplates) {
+          @for (template of templates; track template.id) {
+            <button type="button" class="field-list" [disabled]="busy" (click)="useTemplate(template.id, template.name)">{{ template.name }}</button>
+          } @empty { <small>{{ busy ? 'Loading templates…' : 'No saved templates available.' }}</small> }
+        } @else {
+        <input type="search" [(ngModel)]="query" aria-label="Search workflow components" placeholder="Search components…">
+        <h3>Actions &amp; Flow Control</h3>
+        <div class="tiles">
+          @for (type of filteredTypes; track type) {
+            <button type="button" draggable="true" [disabled]="busy" (dragstart)="dragPalette($event, type)" (click)="addStep(type)"><span class="step-icon" [attr.data-type]="type" aria-hidden="true">{{ stepIcons[type] }}</span>{{ stepLabels[type] }}</button>
+          } @empty { <small>No matching steps.</small> }
+        </div>
+        <h3>Form Inputs</h3>
+        <div class="tiles">
+          @for (field of fieldTypes; track field.type) {
+            <button type="button" [disabled]="busy" (click)="addField(field.type, field.label)"><span class="step-icon" aria-hidden="true">{{ field.icon }}</span>{{ field.label }}</button>
+          }
+        </div>
+        }
+      </aside>
+
+      <section class="panel canvas-panel" aria-label="Workflow canvas">
+        <header><button type="button" (click)="select(-1)" [disabled]="busy">Workflow: {{ flow.name || flow.id }}</button><small>{{ flow.steps.length }} steps</small></header>
+        @if (canvasView === 'yaml') {
+          <pre class="center-yaml">{{ preview }}</pre>
+        } @else if (canvasView === 'preview') {
+          <section class="form-preview" aria-label="Workflow form preview">
+            <h2>Workflow Form Preview</h2>
+            @for (field of flow.inputs; track $index) {
+              <label>
+                {{ field.label || field.name }}{{ field.required ? ' *' : '' }}
+                @switch (field.type) {
+                  @case ('textarea') { <textarea disabled></textarea> }
+                  @case ('select') { <select disabled><option>Select {{ field.label || field.name }}</option>@for (option of fieldOptions(field); track $index) { <option>{{ option.label }}</option> }</select> }
+                  @case ('boolean') { <input type="checkbox" disabled> }
+                  @default { <input [type]="field.type === 'number' || field.type === 'date' ? field.type : 'text'" disabled> }
+                }
+              </label>
+            } @empty { <small>This workflow has no form inputs.</small> }
+          </section>
+        } @else {
+        @if (connection; as pending) {
+          <div class="connect-help" role="status">
+            Choose a destination for {{ portLabels[pending.port] }} on {{ pending.source.name || pending.source.id }}.
+            <button type="button" (click)="connection = null">Cancel connection</button>
+          </div>
+        } @else {
+          <small>Drag or click a node’s output port to connect it to another step.</small>
+        }
+        <div class="canvas" tabindex="0" aria-label="Scrollable workflow canvas" (keydown.escape)="connection = null">
+          @let layout = graph;
+          <div class="graph" [class.connecting]="connection" [style.width.px]="layout.width" [style.height.px]="layout.height">
+            <svg class="edges" [attr.width]="layout.width" [attr.height]="layout.height" aria-hidden="true">
+              <defs>
+                <marker id="workflow-edge-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+                  <path d="M0 0 L7 3.5 L0 7 Z" fill="context-stroke" />
+                </marker>
+              </defs>
+              @for (edge of layout.edges; track $index) {
+                <path class="wire" [class.implicit]="edge.implicit" [attr.data-port]="edge.port" [attr.d]="edge.path" marker-end="url(#workflow-edge-arrow)" />
+                @if (!edge.implicit && edge.port !== 'gotoStep') {
+                  <text class="wire-label" [attr.x]="edge.x" [attr.y]="edge.y">{{ portLabels[edge.port] }}</text>
+                }
+              }
+            </svg>
+            <div class="node start" [style.left.px]="layout.start.x" [style.top.px]="layout.start.y"><span class="step-icon" aria-hidden="true">▶</span>Start</div>
+            @for (item of layout.nodes; track item.step) {
+              @let step = item.step;
+              <div class="node-slot" [class.selected-slot]="item.index === index" [style.left.px]="item.x" [style.top.px]="item.y" (dragover)="$event.preventDefault()" (drop)="drop($event, item.index)">
+                <span class="input-port" aria-hidden="true"></span>
+                <button type="button" class="node" [class.current]="item.index === index" [class.terminal]="step.type === 'end' || step.type === 'return'" [class.decision]="step.type === 'condition'" [attr.aria-pressed]="item.index === index" [disabled]="busy" [draggable]="!busy && !connection" (dragstart)="startDrag($event, item.index)" (dragend)="dragging = -1" (click)="chooseNode(item.index)" (keydown.delete)="$event.preventDefault(); removeStep(item.index)">
+                  <span class="step-icon" [attr.data-type]="paletteType(step)" aria-hidden="true">{{ stepIcons[paletteType(step)] }}</span>
+                  <span class="node-label" [title]="nodeTitle(step)">{{ nodeTitle(step) }}<small>{{ nodeSubtitle(step) }}</small></span>
+                </button>
+                <button type="button" class="delete-node" title="Delete step" [attr.aria-label]="'Delete ' + (step.name || step.id)" [disabled]="busy" (click)="removeStep(item.index)">×</button>
+                @for (port of ports(step); track port) {
+                  <button type="button" class="output-port" [attr.data-port]="port" [attr.aria-label]="'Connect ' + portLabels[port] + ' from ' + (step.name || step.id)" [title]="portLabels[port]" [disabled]="busy" draggable="true"
+                    (click)="startConnection(step, port)" (dragstart)="startConnection(step, port, $event)" (dragend)="connection = null"></button>
+                }
+              </div>
+            }
+            </div>
+          <div class="drop-zone" (dragover)="$event.preventDefault()" (drop)="drop($event, steps.length)">Drop a component here to append</div>
+        </div>
+        }
+      </section>
+
+      <aside class="panel properties" aria-label="Workflow properties" tabindex="0">
+        <header>
+          <button type="button" [class.primary]="view === 'properties'" (click)="view = 'properties'">Properties</button>
+          <button type="button" [class.primary]="view === 'yaml'" (click)="validate()" [disabled]="busy">YAML Preview</button>
+        </header>
+        @if (view === 'yaml') {
+          <pre>{{ preview }}</pre>
+        } @else if (selected; as step) {
+          @let nodeType = paletteType(step);
+          <section class="property-intro">
+            <div class="property-heading">
+              <span class="step-icon" [attr.data-type]="nodeType" aria-hidden="true">{{ stepIcons[nodeType] || '◇' }}</span>
+              <h2>{{ stepLabels[nodeType] || step.type }} Properties</h2>
+            </div>
+            <div class="usage-note"><strong>Usage</strong><p>{{ stepUsage[nodeType] || 'Configure this step and connect it to the next part of the workflow.' }}</p></div>
+            <div class="appearance-preview">
+              <small>On the canvas</small>
+              <div class="node" [class.terminal]="step.type === 'end' || step.type === 'return'" [class.decision]="step.type === 'condition'">
+                <span class="step-icon" [attr.data-type]="nodeType" aria-hidden="true">{{ stepIcons[nodeType] || '◇' }}</span>
+                <span class="node-label" [title]="nodeTitle(step)">{{ nodeTitle(step) }}<small>{{ nodeSubtitle(step) }}</small></span>
+              </div>
+            </div>
+          </section>
+          <div class="property-group identity-fields">
+            <label>Step ID<input [(ngModel)]="step.id" [disabled]="busy"></label>
+            <label>Node Label<input [(ngModel)]="step.name" [disabled]="busy"></label>
+          </div>
+          @if (step.type === 'api' && !step['action']) {
+            @if (xmlTemplatesError) { <small role="status">{{ xmlTemplatesError }} You can still paste XML.</small> }
+            <app-api-xml-properties [step]="step" [templates]="xmlTemplates" [dataSources]="dataSources" [disabled]="busy || xmlTemplatesLoading" (confirmed)="applyApiSettings(step, $event)" (templateSaved)="rememberXmlTemplate($event)" />
+          }
+          @if (paletteType(step) === 'check-text') {
+            <section class="display-settings">
+              <label>Text input path<input [(ngModel)]="textPath" [disabled]="busy" placeholder="inputs.userText"></label>
+              <small>Saves the result as {{ step['saveAs'] || 'isValid' }}. Connect the Yes and No outputs below.</small>
+              <button type="button" class="primary" (click)="applyTextCheck(step)" [disabled]="busy">Apply Text Check</button>
+            </section>
+          } @else if (step.type === 'condition') {
+            <section class="property-group">
+              <h3>Condition</h3>
+              <label>Data source
+                <select [ngModel]="decisionSource" (ngModelChange)="chooseDecisionSource($event)" [disabled]="busy">
+                  <option value="">Choose a workflow input or step output</option>
+                  @for (path of displayDataPaths; track path) { <option [value]="path">{{ path }}</option> }
+                </select>
+              </label>
+              @if (decisionAttributes.length) {
+                <label>Attribute
+                  <select [ngModel]="decisionField" (ngModelChange)="chooseDecisionField($event)" [disabled]="busy">
+                    <option value="">Choose an attribute</option>
+                    @for (field of decisionAttributes; track displayFieldId(field)) {
+                      <option [value]="displayFieldId(field)" [title]="field.xmlPath || field.source">{{ field.key }}</option>
+                    }
+                  </select>
+                </label>
+              }
+              <label>Data path<input [ngModel]="decisionPath" (ngModelChange)="decisionPath = $event; decisionField = ''" [disabled]="busy" placeholder="variables.orderDetails.status"></label>
+              <label>Comparison
+                <select [(ngModel)]="decisionOperator" [disabled]="busy">
+                  @for (operator of decisionOperators; track operator.id) { <option [value]="operator.id">{{ operator.label }}</option> }
+                </select>
+              </label>
+              @if (decisionNeedsValue) {
+                <label>Value type
+                  <select [(ngModel)]="decisionValueType" [disabled]="busy">
+                    <option value="text">Text</option>
+                    <option value="number">Number</option>
+                    <option value="boolean">Boolean</option>
+                    <option value="reference">Workflow data path</option>
+                  </select>
+                </label>
+                @if (decisionValueType === 'boolean') {
+                  <label>Compare with
+                    <select [(ngModel)]="decisionValue" [disabled]="busy">
+                      <option value="false">False</option>
+                      <option value="true">True</option>
+                    </select>
+                  </label>
+                } @else {
+                  <label>Compare with<input [(ngModel)]="decisionValue" [disabled]="busy" [placeholder]="decisionValueType === 'reference' ? 'inputs.expectedStatus' : 'Expected value'"></label>
+                }
+              }
+              <button type="button" class="primary" (click)="applyDecision(step)" [disabled]="busy || xmlTemplatesLoading">Apply Condition</button>
+              <small>Set the Yes and No destinations under Connections.</small>
+            </section>
+          }
+          @if (paletteType(step) === 'prompt-transform') {
+            <section class="display-settings">
+              @if (dataSources.length) {
+                <label>Available data
+                  <select [ngModel]="dataSources.includes(transformSource) ? transformSource : ''" (ngModelChange)="transformSource = $event" [disabled]="busy">
+                    <option value="">Choose a workflow input or step output</option>
+                    @for (source of dataSources; track source) { <option [value]="source">{{ source }}</option> }
+                  </select>
+                </label>
+              }
+              <label>Data path<input [(ngModel)]="transformSource" [disabled]="busy" placeholder="variables.api_response.response"></label>
+              <label>Prompt<textarea [(ngModel)]="transformPrompt" [disabled]="busy" placeholder="Rename the root from Order to OrderResult"></textarea></label>
+              <small>Rename XML or JSON roots, or extract a JSON field such as Order.@Status.</small>
+              <label>Save transformed result as<input [(ngModel)]="transformOutput" [disabled]="busy"></label>
+              <button type="button" class="primary" (click)="applyPromptTransform(step)" [disabled]="busy">Apply Prompt</button>
+            </section>
+          }
+          @if (paletteType(step) === 'show-message') {
+            <section class="display-settings">
+              <label>Message source
+                <select [(ngModel)]="messageMode" [disabled]="busy">
+                  <option value="text">Write a message</option>
+                  <option value="output">Show workflow output</option>
+                </select>
+              </label>
+              @if (messageMode === 'output') {
+                @if (dataSources.length) {
+                  <label>Workflow output
+                    <select [ngModel]="dataSources.includes(messageSource) ? messageSource : ''" (ngModelChange)="messageSource = $event" [disabled]="busy">
+                      <option value="">Choose an input or step output</option>
+                      @for (source of dataSources; track source) { <option [value]="source">{{ source }}</option> }
+                    </select>
+                  </label>
+                }
+                <label>Data path<input [(ngModel)]="messageSource" [disabled]="busy" placeholder="variables.transformedResult"></label>
+              } @else {
+                <label>Message<textarea [(ngModel)]="messageText" [disabled]="busy" placeholder="Please enter a response."></textarea></label>
+              }
+              <button type="button" class="primary" (click)="applyMessage(step)" [disabled]="busy || !(messageMode === 'output' ? messageSource.trim() : messageText.trim())">Apply Message</button>
+            </section>
+          } @else if (step.type === 'display' || step.type === 'return' || step.type === 'transform') {
+            <section class="display-settings">
+              <h3>{{ step.type === 'transform' ? 'Transform Fields' : step.type === 'return' ? 'Return Data' : 'Display Data' }}</h3>
+              <label>Data path
+                <select [ngModel]="displaySource" (ngModelChange)="chooseDisplayPath($event)" [disabled]="busy">
+                  <option value="">Choose a data source</option>
+                  @for (path of displayDataPaths; track path) { <option [value]="path">{{ path }}</option> }
+                </select>
+              </label>
+              @if (displaySource && displayAttributes.length) {
+                <details class="attribute-select">
+                  <summary>Attributes ({{ selectedDisplayFields.length }} selected)</summary>
+                  <div class="attribute-options">
+                    @for (field of displayAttributes; track displayFieldId(field)) {
+                      <label [title]="field.xmlPath || field.source"><input type="checkbox" [checked]="selectedDisplayFields.includes(displayFieldId(field))"
+                        (change)="toggleDisplayField(displayFieldId(field), $any($event.target).checked)" [disabled]="busy">{{ field.key }}</label>
+                    }
+                  </div>
+                </details>
+              } @else if (displaySource) {
+                <small>{{ xmlTemplatesLoading ? 'Loading attributes…' : 'This source can be displayed as a whole value.' }}</small>
+                <label>Result key<input [(ngModel)]="displayLabel" [disabled]="busy" placeholder="orderDetails"></label>
+              }
+              <details class="custom-result-path">
+                <summary>Custom data path</summary>
+                <label>Data path<input [ngModel]="displaySource" (ngModelChange)="chooseDisplayPath($event)" [disabled]="busy" placeholder="variables.api_response.response"></label>
+              </details>
+              @if (step.type === 'transform') {
+                <label>Save as<input [(ngModel)]="reshapeOutput" [disabled]="busy" placeholder="transformedResult"></label>
+                <small>Leave blank to save each selected field as its own workflow variable.</small>
+              }
+              <button type="button" class="primary" (click)="applyDisplaySettings(step)" [disabled]="busy || xmlTemplatesLoading || !displaySource.trim()">{{ step.type === 'transform' ? 'Apply Transform Settings' : step.type === 'return' ? 'Apply Return Settings' : 'Apply Display Settings' }}</button>
+              @if (displayMappings.length) {
+                <h3>Result Preview</h3>
+                @for (field of displayMappings; track field.key) {
+                  <div class="result-mapping">
+                    <code>{{ field.key }}: "{{ field.expression }}"</code>
+                    <button type="button" [attr.aria-label]="'Remove ' + field.key" (click)="removeDisplayMapping(step, field.key)" [disabled]="busy">×</button>
+                  </div>
+                }
+              }
+            </section>
+          }
+          @if (step.type === 'flow') {
+            <section class="property-group">
+            <label>Subflow
+              <select [ngModel]="step['flow'] || step['flowId'] || ''" (ngModelChange)="updateSubflow(step, $event)" [disabled]="busy">
+                <option value="">Select a workflow</option>
+                @for (template of templates; track template.id) {
+                  @if (template.id !== flow.id) { <option [value]="template.id">{{ template.name }}</option> }
+                }
+              </select>
+            </label>
+            </section>
+          }
+          @if (ports(step).length) {
+            <section class="property-group">
+            <h3>Connections</h3>
+            @for (port of ports(step); track port) {
+              <label>{{ portLabels[port] }}
+                <select [ngModel]="targetId(step[port]) || (port === 'gotoStep' || port === 'onTrue' ? targetId(step['onSuccess']) : port === 'onFalse' ? targetId(step['onFailure']) : '')"
+                  (ngModelChange)="setConnection(step, port, $event)" [disabled]="busy">
+                  <option value="">{{ port === 'onError' ? 'Stop on error' : 'Use default routing' }}</option>
+                  @for (destination of steps; track destination) {
+                    <option [value]="destination.id">{{ destination.name || destination.id }}</option>
+                  }
+                </select>
+              </label>
+            }
+            </section>
+          }
+          <ng-container [ngTemplateOutlet]="advancedProperties"></ng-container>
+          <div class="toolbar">
+            <button type="button" (click)="moveStep(index, index - 1)" [disabled]="busy || index === 0">↑ Move up</button>
+            <button type="button" (click)="moveStep(index, index + 1)" [disabled]="busy || index === steps.length - 1">↓ Move down</button>
+            <button type="button" class="remove-button" (click)="removeSelection()" [disabled]="busy">Remove</button>
+          </div>
+        } @else if (selectedInput; as field) {
+          <section class="property-intro">
+            <div class="property-heading"><span class="step-icon" aria-hidden="true">▤</span><h2>Form Input Properties</h2></div>
+            <div class="usage-note"><strong>Usage</strong><p>Collect a value before running the workflow. The label appears on the form, and steps use the field name to read it.</p></div>
+            <div class="appearance-preview"><small>On the form</small><strong>{{ field.label || field.name }}{{ field.required ? ' *' : '' }}</strong></div>
+          </section>
+          <label>Field Name<input [(ngModel)]="field.name" [disabled]="busy"></label>
+          <label>Label<input [(ngModel)]="field.label" [disabled]="busy"></label>
+          <label class="checkbox"><input type="checkbox" [(ngModel)]="field.required" [disabled]="busy"> Required</label>
+          <ng-container [ngTemplateOutlet]="advancedProperties"></ng-container>
+          <button type="button" (click)="removeSelection()" [disabled]="busy">Remove Field</button>
+        } @else {
+          <section class="property-intro">
+            <div class="property-heading"><span class="step-icon" aria-hidden="true">⌘</span><h2>Workflow Properties</h2></div>
+            <div class="usage-note"><strong>Usage</strong><p>The name appears in Workflow Studio. The ID identifies the workflow and determines its YAML filename.</p></div>
+          </section>
+          <label>Workflow ID<input [(ngModel)]="flow.id" [disabled]="busy"></label>
+          <label>Name<input [ngModel]="flow.name" (ngModelChange)="renameWorkflow($event)" [disabled]="busy"></label>
+          <label>Version<input [(ngModel)]="flow.version" [disabled]="busy"></label>
+          <label>AI intent prompt<textarea [ngModel]="workflowPrompt" (ngModelChange)="setWorkflowPrompt($event)" [disabled]="busy" placeholder="Describe when chat should choose this workflow"></textarea></label>
+          <small>The prompt guides chat selection for AI-enabled flows. Use Check Text and its Yes/No connections for runtime validation.</small>
+        }
+        @if (view === 'properties' && flow.inputs.length) {
+          <h3>Workflow Form Inputs</h3>
+          @for (field of flow.inputs; track field; let i = $index) {
+            <button type="button" class="field-list" [class.primary]="i === inputIndex" (click)="select(-1, i)" [disabled]="busy">{{ field.label || field.name }}</button>
+          }
+        }
+      </aside>
+    </div>
+  } @else if (busy) { <p class="feedback" role="status">Loading workflow…</p> }
+  <footer class="toolbar">
+    <button type="button" (click)="dismissed.emit()" [disabled]="busy">Cancel</button>
+    @if (canSave) {
+      <button type="button" class="primary confirm" (click)="validate('apply')" [disabled]="busy || !workflow">✓ Confirm &amp; Add Flow</button>
+    }
+  </footer>
+</section>
+<ng-template #advancedProperties>
+  <label>Additional properties (JSON)<textarea [(ngModel)]="details" [attr.aria-invalid]="detailsInvalid" [disabled]="busy" spellcheck="false"></textarea></label>
+  @if (detailsInvalid) {
+    <small>Enter a JSON object with quoted keys.</small>
+    <button type="button" (click)="discardInvalidDetails()" [disabled]="busy">Discard JSON Edit</button>
+  }
+</ng-template>

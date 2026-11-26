@@ -1,0 +1,24 @@
+# Provide the shared assistant profile and UI template used to build workflow forms.
+id: common-ui
+version: "1.0"
+
+assistant:
+  name: Workflow Assistant
+  purpose: Runs configured workflows, explains their steps, and answers questions about local documents.
+  greeting: Ask me to run or explain the selected workflow.
+
+page:
+  layout: dashboard
+  icon: workflow
+
+tableFeatures:
+  search: true
+  sorting: true
+  pagination:
+    enabled: true
+    pageSize: 10
+
+components:
+  - id: execution-status
+    type: execution-status
+    title: Execution

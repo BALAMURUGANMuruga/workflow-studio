@@ -1,0 +1,7 @@
+{
+  "order_number": ["order number", "order no", "order id", "order identifier"],
+  "status": ["status", "order status", "current status", "order state"],
+  "customer": ["customer", "customer name", "buyer", "buyer name", "customer full name"],
+  "total": ["total", "order total", "total amount", "grand total", "order value"],
+  "item_count": ["item count", "number of items", "total items", "order item count", "item quantity"]
+}

@@ -1,0 +1,31 @@
+id: orde-details
+type: xml-transformation
+name: order-details
+description: get the order then chack order status etc.
+steps:
+  - id: gen-order-xml
+    prompt: |
+	Check if the user has provided any text input. like order no get and set to order no like 
+      
+                <Order DocumentType="00001" OrganizationCode="Matrix-R"  OrderNo="020205"/>
+            
+      Instruction:
+      
+      Set AlternateUOM to EACH.
+      Return the full XML.
+    onSuccess:
+      gotoStep: end
+    onError:
+      gotoStep: error
+	  
+	  - id: get-order-xml
+	  api:getOrderDetails
+	     prompt: |
+	  pass the getorderdetails output 
+	             
+	       Instruction:
+	       user ask like order status show order status from status
+	     onSuccess:
+	       gotoStep: end
+	     onError:
+	       gotoStep: error

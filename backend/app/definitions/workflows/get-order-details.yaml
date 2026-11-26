@@ -1,0 +1,249 @@
+# Input: order identifiers or search fields. Output: order details or matching orders from Sterling.
+id: order-details
+name: Get Order Details
+version: "1.2"
+description: >
+  Retrieve order details from the live IBM Sterling getOrderDetails API.
+  All displayed order fields are parsed from the API response XML.
+
+trigger:
+  type: ui
+  ui: common-ui
+  event: execute
+
+ai:
+  enabled: true
+  prompt: >
+    Identify requests to retrieve an existing order. Use an order number or
+    order header key supplied by the user. Treat questions about order concepts
+    or the order lifecycle as documentation questions.
+  intent: get_order_details
+  executionCommands:
+    - get order details
+    - show order details
+    - show the order details
+    - find order details
+    - show order status
+    - find order information
+    - look up an order
+    - retrieve order details
+    - show the status and payment status for an order
+    - get the line items for an order
+  allowInlineCommandInputs: true
+  examples:
+    - get order details
+    - show order status
+    - find order information
+    - look up an order by order number
+    - retrieve order details using an order header key
+    - show the status and payment status for an order
+    - get the line items for an order
+    - find order details for several order numbers
+  clarification: Please provide an order number or order header key.
+  successMessage: I retrieved the order details. Here is what the workflow returned.
+
+presentation:
+  quickActions:
+    - {label: Find order details, prompt: Find order details}
+    - {label: View order lines, prompt: Get the line items for an order}
+    - {label: Check order status, prompt: Show order status}
+  results:
+    - id: order-summary
+      type: object-view
+      title: Order Summary
+      source: result.data.order
+      visibleWhen: result.single
+      fields:
+        - {key: orderNo, label: Order Number}
+        - {key: status, label: Order Status, display: badge}
+        - {key: paymentStatus, label: Payment Status, display: badge}
+        - {key: statusDescription, label: Status Description}
+        - {key: enterpriseCode, label: Enterprise}
+        - {key: orderHeaderKey, label: Order Header Key}
+    - id: order-lines
+      type: data-table
+      title: Order Lines
+      source: result.data.orderLines
+      visibleWhen: result.single
+      columns:
+        - {key: primeLineNo, label: Line}
+        - {key: itemId, label: Item ID}
+        - {key: orderedQty, label: Ordered Quantity}
+        - {key: status, label: Status, display: badge}
+    - id: order-batch-results
+      type: batch-view
+      title: Order Lookup Results
+      source: result.data.orders
+      visibleWhen: result.batch
+      summaryFields:
+        - {key: status, label: Order Status}
+        - {key: paymentStatus, label: Payment Status}
+        - {key: statusDescription, label: Status Description}
+        - {key: enterpriseCode, label: Enterprise}
+        - {key: orderHeaderKey, label: Order Header Key}
+      lineItems:
+        key: orderLines
+        title: Order Lines
+        columns:
+          - {key: primeLineNo, label: Line}
+          - {key: itemId, label: Item ID}
+          - {key: orderedQty, label: Ordered Quantity}
+          - {key: status, label: Status}
+
+inputs:
+  - name: orderNo
+    type: string
+    required: false
+    label: Order Number
+    placeholder: Enter one or comma-separated order numbers
+  - name: orderHeaderKey
+    type: string
+    required: false
+    label: Order Header Key
+
+inputGroups:
+  - name: orderIdentifier
+    anyOf: [orderNo, orderHeaderKey]
+    message: Please provide an order number or order header key.
+
+batch:
+  input: orderNo
+  separator: ","
+  maxItems: 10
+  output:
+    collection: orders
+    fields:
+      orderNo: input
+      status: data.order.status
+      statusDescription: data.order.statusDescription
+      paymentStatus: data.order.paymentStatus
+      enterpriseCode: data.order.enterpriseCode
+      orderHeaderKey: data.order.orderHeaderKey
+      orderLines: data.orderLines
+
+configuration:
+  timeout: 60
+  enterpriseCode: COACH_US
+  documentType: "0001"
+
+variables:
+  orderDetails: null
+  orderLinesApi: null
+  orderLines: []
+
+steps:
+  # 1. getOrderDetails -> header fields parsed from the response XML
+  - id: get-order-details
+    name: Get the order details
+    type: api
+    toolName: getOrderDetails
+    xml_templates:
+      request:
+        file: input-templates
+        id: getorderdetailsinput
+      response:
+        file: output-templates
+        id: getorderdetailsresponse
+    parameters:
+      orderNo: "${inputs.orderNo}"
+      orderHeaderKey: "${inputs.orderHeaderKey}"
+      enterpriseCode: "${config.enterpriseCode}"
+      documentType: "${config.documentType}"
+    responseMapping:
+      strategy: field
+      fields:
+        - source: "Order.@OrderNo"
+          target: orderNo
+        - source: "Order.@OrderHeaderKey"
+          target: orderHeaderKey
+        - source: "Order.@Status"
+          target: status
+        - source: "Order.@StatusDescription"
+          target: statusDescription
+        - source: "Order.@PaymentStatus"
+          target: paymentStatus
+        - source: "Order.@EnterpriseCode"
+          target: enterpriseCode
+    saveAs: orderDetails
+    onSuccess:
+      gotoStep: check-order-header-key
+    onError:
+      message: getOrderDetails API call failed
+
+  # 2. Did the response contain an OrderHeaderKey?
+  - id: check-order-header-key
+    name: Check OrderHeaderKey
+    type: condition
+    condition:
+      field: "${variables.orderDetails.orderHeaderKey}"
+      operator: notEmpty
+    onTrue: get-order-lines
+    onFalse: order-not-found
+
+  # 3. getOrderList with the OrderHeaderKey from step 1
+  - id: get-order-lines
+    name: Get the order lines
+    type: api
+    toolName: getOrderList
+    xml_templates:
+      request:
+        file: input-templates
+        id: getorderlistinput
+      response:
+        file: output-templates
+        id: getorderlistresponse
+    parameters:
+      orderHeaderKey: "${variables.orderDetails.orderHeaderKey}"
+    saveAs: orderLinesApi
+    onSuccess:
+      gotoStep: parse-order-lines
+    onError:
+      message: getOrderList API call failed
+
+  - id: parse-order-lines
+    name: Parse order lines
+    type: action
+    action: extract_xml_records
+    with:
+      xml: "${variables.orderLinesApi.raw.xml}"
+      recordPath: //OrderLine
+      recordRequiredFields: [primeLineNo]
+      fields:
+        primeLineNo: "@PrimeLineNo"
+        status: "@Status"
+        orderedQty: "@OrderedQty"
+        itemId: "ItemDetails/@ItemID"
+    saveAs: orderLines
+    gotoStep: order-details
+
+  # 4. Data displayed by the shared UI.
+  - id: order-details
+    name: Order details result
+    type: return
+    with:
+      order:
+        orderNo: "${variables.orderDetails.orderNo}"
+        orderHeaderKey: "${variables.orderDetails.orderHeaderKey}"
+        status: "${variables.orderDetails.status}"
+        statusDescription: "${variables.orderDetails.statusDescription}"
+        paymentStatus: "${variables.orderDetails.paymentStatus}"
+        enterpriseCode: "${variables.orderDetails.enterpriseCode}"
+      orderLines: "${variables.orderLines}"
+    onSuccess:
+      gotoStep: end
+
+  # Branch target when OrderHeaderKey is empty: fails the run with a clear message.
+  - id: order-not-found
+    name: Order not found
+    type: action
+    action: require_non_empty
+    with:
+      value: "${variables.orderDetails.orderHeaderKey}"
+      message: OrderHeaderKey is missing. Invalid order number.
+
+  - id: end
+    type: end
+
+errorHandling:
+  default:
+    message: Workflow execution failed. Review the execution details.
