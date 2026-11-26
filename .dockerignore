@@ -1,0 +1,15 @@
+**
+!Dockerfile.render
+!backend/
+!backend/requirements.txt
+!backend/app/
+!backend/app/**
+!frontend/
+!frontend/package*.json
+!frontend/angular.json
+!frontend/tsconfig*.json
+!frontend/src/
+!frontend/src/**
+backend/app/**/__pycache__/
+backend/app/**/.env*
+frontend/src/**/.env*

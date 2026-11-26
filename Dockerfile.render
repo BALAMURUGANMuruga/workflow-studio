@@ -1,0 +1,17 @@
+FROM node:22-bookworm-slim AS frontend
+WORKDIR /build
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build -- --configuration production
+
+FROM python:3.12-slim
+WORKDIR /app
+ENV PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+COPY backend/requirements.txt ./
+# Install the CPU-only PyTorch build before resolving the remaining requirements.
+RUN pip install --no-cache-dir 'torch>=2.6,<3' --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r requirements.txt
+COPY backend/app ./app
+COPY --from=frontend /build/dist/workflow-studio/browser ./web
+CMD ["sh", "-c", "exec uvicorn app.render_entry:app --host 0.0.0.0 --port ${PORT:-10000}"]

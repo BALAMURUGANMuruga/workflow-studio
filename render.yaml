@@ -1,12 +1,11 @@
 services:
-  - name: workflow-studio-api
-    type: pserv
+  - name: workflow-studio-web
+    type: web
     runtime: docker
-    plan: 1c-2g
-    rootDir: backend
+    plan: free
+    dockerfilePath: ./Dockerfile.render
+    healthCheckPath: /api/health
     envVars:
-      - key: PORT
-        value: "8000"
       - key: WORKFLOW_REQUIRE_CONFIGURED_AUTH
         value: "true"
       - key: WORKFLOW_AUTH_SECRET
@@ -17,17 +16,5 @@ services:
         sync: false
       - key: WORKFLOW_MOCK_MODE
         value: "false"
-  - name: workflow-studio-web
-    type: web
-    runtime: docker
-    plan: 0.5c-512mb
-    rootDir: frontend
-    healthCheckPath: /api/health
-    envVars:
-      - key: PORT
-        value: "10000"
-      - key: API_UPSTREAM
-        fromService:
-          name: workflow-studio-api
-          type: pserv
-          property: hostport
+      - key: LOCAL_AI_TRAIN_EPOCHS
+        value: "3"

@@ -13,11 +13,11 @@ git remote add origin https://github.com/OWNER/REPOSITORY.git
 git push -u origin main
 ```
 
-For an existing checkout, use its existing branch and remote. In Render, choose **New → Blueprint**, connect the repository, and review the two paid service plans before applying. Enter `WORKFLOW_ADMIN_USERNAME` and a unique password of 16–128 characters for `WORKFLOW_ADMIN_PASSWORD`. Render creates the token signing secret. Configured-auth mode accepts only the configured account. The demo accounts remain available for local development when that mode is disabled.
+For an existing checkout, use its existing branch and remote. In Render, choose **New → Blueprint**, connect the repository, and verify the preview shows one Free service, `workflow-studio-web`. Enter `WORKFLOW_ADMIN_USERNAME` and a unique password of 16–128 characters for `WORKFLOW_ADMIN_PASSWORD`. Render creates the token signing secret. Configured-auth mode accepts only the configured account. The demo accounts remain available for local development when that mode is disabled.
 
-Open the web service's Render URL and verify `/api/health`, sign-in, chat, and **Floorplan → Live activity**. To enable Sterling calls, add `INTEROP_URL`, `INTEROP_USER`, and `INTEROP_PASSWORD` in the private backend's environment and verify network reachability from Render.
+Open the web service's Render URL and verify `/api/health`, sign-in, chat, and **Floorplan → Live activity**. To enable Sterling calls, add `INTEROP_URL`, `INTEROP_USER`, and `INTEROP_PASSWORD` in the web service's environment and verify network reachability from Render.
 
-The Blueprint deploys the core Angular and FastAPI services. Render's ephemeral filesystem does not preserve workflow edits across deploys. The Java portal services, Playwright runner, and durable workflow storage require separate provisioning. See [Render Blueprints](https://render.com/docs/infrastructure-as-code).
+The Blueprint packages Angular and FastAPI together at one URL. Either source directory can trigger a rebuild. The Free instance sleeps when idle, has limited CPU and memory, and loses local workflow edits and the trained model cache on restart or redeploy. It uses a reduced training epoch count. Validate AI latency and output quality on the deployed instance. The Java portal services, Playwright runner, and durable workflow storage require separate provisioning. See [Render Free limits](https://render.com/docs/free).
 
 The root Compose file starts the Angular/Nginx workspace and Python/FastAPI backend. The integrated suite also uses the standalone Operations Portal and three Java services. Browser automation requires the separate Python/Playwright runner.
 
