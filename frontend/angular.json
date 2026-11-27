@@ -21,6 +21,10 @@
           },
           "configurations": {
             "production": {"optimization": true, "outputHashing": "all"},
+            "render": {
+              "optimization": {"scripts": true, "styles": true, "fonts": false},
+              "fileReplacements": [{"replace": "src/app/operations-availability.ts", "with": "src/app/operations-availability.render.ts"}]
+            },
             "development": {"optimization": false, "extractLicenses": false, "sourceMap": true}
           },
           "defaultConfiguration": "development"

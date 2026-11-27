@@ -6,7 +6,7 @@
     <p>{{ operationsAccount ? 'Sign in to the Operations Portal' : 'Sign in to run your workflows' }}</p>
 
     <form (ngSubmit)="login()" #loginForm="ngForm">
-      @if (!embeddedChat) {
+      @if (operationsAvailable && !embeddedChat) {
         <label for="account-type">Workspace</label>
         <select id="account-type" name="accountType" [(ngModel)]="operationsAccount" [disabled]="loading">
           <option [ngValue]="false">Ganalimura AI Assistant</option>
@@ -37,7 +37,7 @@
       </button>
     </form>
 
-    @if (!embeddedChat) {
+    @if (operationsAvailable && !embeddedChat) {
       <div class="account-actions">
         <button type="button" class="text-link" (click)="openForgotPassword()">Reset Operations password</button>
         <button type="button" class="text-link" (click)="openRegister()">Create Operations account</button>

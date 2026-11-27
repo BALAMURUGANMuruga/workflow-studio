@@ -6,6 +6,7 @@ import { finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { ForgotPasswordComponent } from '../forgot-password/forgot-password.component';
 import { RegisterComponent } from '../register/register.component';
+import { operationsAvailable } from '../../operations-availability';
 
 @Component({
   selector: 'app-login',
@@ -19,6 +20,7 @@ import { RegisterComponent } from '../register/register.component';
   styleUrl: './login.component.scss'
 })
 export class LoginComponent {
+  readonly operationsAvailable = operationsAvailable;
   username = '';
   password = '';
   showPassword = false;
@@ -35,7 +37,7 @@ export class LoginComponent {
     private readonly router: Router,
     private readonly route: ActivatedRoute,
   ) {
-    this.operationsAccount = !this.embeddedChat && route.snapshot.queryParamMap.get('account') === 'operations';
+    this.operationsAccount = this.operationsAvailable && !this.embeddedChat && route.snapshot.queryParamMap.get('account') === 'operations';
     if (router.currentNavigation()?.extras.state?.['expired']) {
       this.errorMessage = 'Your session has expired. Please sign in again.';
     }
@@ -58,7 +60,7 @@ export class LoginComponent {
 
     this.loading = true;
 
-    const operationsAccount = !this.embeddedChat && this.operationsAccount;
+    const operationsAccount = this.operationsAvailable && !this.embeddedChat && this.operationsAccount;
     const request = operationsAccount
       ? this.authService.login({ username, password: this.password })
       : this.authService.loginWorkflow(username, this.password, this.rememberMe);
