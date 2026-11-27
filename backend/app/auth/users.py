@@ -30,12 +30,19 @@ USERS: dict[str, dict[str, Any]] = {
 }
 
 
+class AuthConfigurationError(RuntimeError):
+    """The hosted sign-in account is configured incorrectly."""
+
+
 def authenticate(username: str, password: str) -> dict[str, Any] | None:
     if os.getenv("WORKFLOW_REQUIRE_CONFIGURED_AUTH") == "true":
         configured_name = os.getenv("WORKFLOW_ADMIN_USERNAME", "").strip()
         configured_password = os.getenv("WORKFLOW_ADMIN_PASSWORD", "")
-        if not configured_name or len(configured_password) < 16:
-            return None
+        if not 1 <= len(configured_name) <= 64 or not 16 <= len(configured_password) <= 128:
+            raise AuthConfigurationError(
+                "Hosted sign-in is unavailable. Set WORKFLOW_ADMIN_USERNAME and a "
+                "16–128 character WORKFLOW_ADMIN_PASSWORD in Render."
+            )
         username_matches = compare_digest(username.strip().casefold().encode(), configured_name.casefold().encode())
         password_matches = compare_digest(password.encode(), configured_password.encode())
         if username_matches and password_matches:

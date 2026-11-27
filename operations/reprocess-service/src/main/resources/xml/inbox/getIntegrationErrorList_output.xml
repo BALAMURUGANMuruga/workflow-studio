@@ -1,5 +1,0 @@
-<IntegrationErrors TotalNumberOfRecords="">
-<IntegrationError ErrorCode="" ErrorMessage="" ErrorReference="" ErrorString="" ErrorTxnId="" ExceptionId="" FlowName="" State="">
-<Queue QueueId=""/>
-</IntegrationError>
-</IntegrationErrors>

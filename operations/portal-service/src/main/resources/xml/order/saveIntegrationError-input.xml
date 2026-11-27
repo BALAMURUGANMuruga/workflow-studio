@@ -1,3 +1,0 @@
-<IntegrationError ErrorTxnId="{errorTxnId}">
-<InputXml InputXml="{inputXml}"/>
-</IntegrationError>

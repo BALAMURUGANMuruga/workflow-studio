@@ -80,6 +80,8 @@ export class LoginComponent {
       error: (error) => {
         if (error.status === 401) {
           this.errorMessage = 'Invalid username or password.';
+        } else if (!operationsAccount && error.status === 503 && typeof error.error?.detail === 'string') {
+          this.errorMessage = error.error.detail;
         } else if (error.status === 0) {
           this.errorMessage =
             'Cannot connect to the server. Check that the backend is running.';

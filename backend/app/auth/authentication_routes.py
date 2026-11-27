@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel, Field
 
 from .tokens import issue_token, verify_token
-from .users import authenticate
+from .users import AuthConfigurationError, authenticate
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -43,7 +43,10 @@ def require_master(user: Annotated[dict[str, Any], Depends(get_current_user)]) -
 
 @router.post("/login", response_model=LoginResponse)
 def login(body: LoginBody):
-    user = authenticate(body.username, body.password)
+    try:
+        user = authenticate(body.username, body.password)
+    except AuthConfigurationError as exc:
+        raise HTTPException(503, str(exc)) from exc
     if not user:
         raise HTTPException(401, "Invalid username or password")
     token = issue_token({"sub": user["username"], "role": user["role"], "name": user["displayName"]})
